@@ -13,10 +13,21 @@ import { ragKnowledgeWorkflow } from './workflows/rag-knowledge-workflow';
 import { evaluationTestingWorkflow } from './workflows/evaluation-testing-workflow';
 import { weatherAgent } from './agents/weather-agent';
 import { mcpAgent } from './agents/mcpAgent';
+import { ragAgent } from './agents/ragAgent';
 import { agentStorage, agentVector } from './agentMemory';
+
+// Import agent networks
+import {
+  researchNetwork,
+  dataProcessingNetwork,
+  contentCreationNetwork,
+  technicalOpsNetwork,
+  comprehensiveNetwork
+} from './networks/agentNetwork';
+
 import { 
   createTelemetryConfig,
-  AISDKExporter
+  EnhancedAISDKExporter
 } from './observability';
 
 /**
@@ -24,6 +35,8 @@ import {
  * 
  * @remarks
  * - Configured with 7 production-ready workflows for different AI use cases
+ * - Includes RAG Agent for knowledge retrieval and semantic search
+ * - Features 5 specialized agent networks for intelligent task routing
  * - Uses shared storage from agentMemory for consistency
  * - Integrated LangSmith tracing for comprehensive observability
  * - All agents use traced Google AI models for monitoring
@@ -42,7 +55,14 @@ export const mastra = new Mastra({
     ragKnowledgeWorkflow,
     evaluationTestingWorkflow
   },
-  agents: { weatherAgent, mcpAgent, stockAgent, supervisorAgent, masterAgent, workerAgent },
+  agents: { weatherAgent, mcpAgent, stockAgent, supervisorAgent, masterAgent, workerAgent, ragAgent },
+  networks: {
+    researchNetwork: researchNetwork(),
+    dataProcessingNetwork: dataProcessingNetwork(),
+    contentCreationNetwork: contentCreationNetwork(),
+    technicalOpsNetwork: technicalOpsNetwork(),
+    comprehensiveNetwork: comprehensiveNetwork()
+  },
   storage: agentStorage,
   vectors: { default: agentVector },
   logger: new PinoLogger({
@@ -58,7 +78,7 @@ export const mastra = new Mastra({
     },
     export: {
       type: "custom",
-      exporter: new AISDKExporter(),
+      exporter: new EnhancedAISDKExporter(),
     }
   }),
 });

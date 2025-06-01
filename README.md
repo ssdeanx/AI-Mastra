@@ -40,34 +40,54 @@ AI-Mastra is a production-ready, enterprise-grade framework for building and dep
 
 ### What Makes AI-Mastra Different?
 
-- **🧠 Advanced Memory System**: Persistent, semantic memory with intelligent summarization
-- **📈 Enterprise Observability**: Full LangSmith integration with token tracking and performance metrics
-- **🔄 Multi-Agent Orchestration**: Sophisticated agent coordination and task delegation
-- **🌐 MCP Integration**: Native Model Context Protocol support for extensible tooling
-- **⚡ Production-Ready**: Built-in evaluation framework, error handling, and deployment tools
+- **🧠 Advanced Knowledge Systems**: Production-ready RAG with vector and graph-based retrieval
+- **🌐 Intelligent Agent Networks**: 5 specialized networks for sophisticated task routing and coordination  
+- **📈 Enterprise Observability**: Full LangSmith integration with Hub support, prompt management, and advanced analytics
+- **🔄 Multi-Agent Orchestration**: Sophisticated agent coordination with network-level intelligence
+- **🌐 MCP Integration**: Native Model Context Protocol support with dual-client architecture for extensible tooling
+- **⚡ Production-Ready**: Built-in evaluation framework, comprehensive error handling, and deployment tools
 
 ## ✨ Key Features
 
 ### 🤖 Intelligent Agent System
 
-- Pre-built specialized agents (Weather, Stock, MCP, RAG, Supervisor)
+- 7 specialized agents (Master, MCP, RAG, Stock, Supervisor, Weather, Worker)
+- 5 intelligent agent networks for task routing and coordination
 - Custom agent creation with role-based instructions
 - Multi-agent workflows and collaboration
 - Advanced tool integration and execution
 
-### 🧠 Persistent Memory & Context
+### 🧠 Advanced Knowledge & Retrieval
+
+- Production-ready RAG Agent with vector and graph-based search
+- Semantic memory with vector embeddings using Google AI
+- GraphRAG for relationship discovery and multi-hop reasoning
+- Intelligent search strategy selection (vector, graph, hybrid)
+- Document processing with configurable chunking strategies
+
+### 📊 Enterprise Observability & Analytics
+
+- Full LangSmith integration with AI SDK wrapper support
+- LangSmith Hub integration for prompt management and versioning
+- Advanced prompt templating with variable substitution
+- Performance metrics with MemoryTracker and ErrorTracker
+- Real-time tracing and token usage monitoring
+
+### 🔄 Multi-Agent Network Orchestration
+
+- Research Network for comprehensive information gathering
+- Data Processing Network for analysis workflows
+- Content Creation Network for research-backed content
+- Technical Operations Network for system analysis
+- Comprehensive Network for complex multi-domain tasks
+
+### 💾 Persistent Memory & Context
 
 - Semantic memory with vector embeddings
-- Intelligent context summarization
+- Intelligent context summarization with token management
 - Thread-based conversation management
-- Token-aware memory optimization
-
-### 📊 Enterprise Observability
-
-- Real-time LangSmith tracing and monitoring
-- Performance metrics and token usage tracking
-- Error tracking and debugging tools
-- Custom evaluation metrics
+- Context-aware retrieval across agent interactions
+- LibSQL-based persistent storage with vector support
 
 ### 🔧 Developer Experience
 
@@ -197,7 +217,9 @@ The central orchestrator designed to manage and interact with the Model Context 
 ```typescript
 import { masterAgent } from './src/mastra/agents/masterAgent';
 
-const result = await masterAgent.run('Coordinate a comprehensive data retrieval task');
+const result = await masterAgent.generate([
+  { role: 'user', content: 'Coordinate a comprehensive data retrieval task' }
+]);
 ```
 
 ### 🔌 MCP Agent
@@ -207,16 +229,42 @@ Specialized in Model Context Protocol interactions with advanced MCP command exe
 ```typescript
 import { mcpAgent } from './src/mastra/agents/mcpAgent';
 
-const mcpResult = await mcpAgent.run('Execute MCP command for file system operations');
+const mcpResult = await mcpAgent.generate([
+  { role: 'user', content: 'Execute MCP command for file system operations' }
+]);
 ```
 
 ### 🧠 RAG Agent
 
-*Currently in development* - Advanced Retrieval-Augmented Generation capabilities for knowledge-based responses.
+**Production Ready** - Advanced Retrieval-Augmented Generation capabilities for knowledge-based responses with semantic search and graph-based retrieval.
+
+**Capabilities:**
+
+- Vector similarity search using Google embeddings
+- Graph-based relationship discovery and analysis
+- Intelligent search strategy selection (vector, graph, hybrid)
+- Document analysis and summarization
+- Context-aware knowledge retrieval
+
+**Tools Integrated:**
+
+- Vector Query Tool for semantic search
+- GraphRAG Tool for relationship discovery
+- Agent memory for context retention
 
 ```typescript
 import { ragAgent } from './src/mastra/agents/ragAgent';
-// RAG Agent implementation coming soon
+
+const knowledge = await ragAgent.generate([
+  { role: 'user', content: 'Find comprehensive information about climate change impacts' }
+]);
+
+// Advanced search with parameters
+const searchResult = await ragAgent.callTool('vectorQueryTool', {
+  queryText: 'renewable energy technologies',
+  topK: 15,
+  filter: ''
+});
 ```
 
 ### 📈 Stock Market Agent
@@ -247,6 +295,89 @@ Real-time weather data and meteorological analysis using Open-Meteo API with geo
 import { weatherAgent } from './src/mastra/agents/weather-agent';
 
 const weather = await weatherAgent.run('Current weather in San Francisco');
+```
+
+### 💼 Worker Agent
+
+Task execution specialist for automated workflow processing and multi-step operations.
+
+```typescript
+import { workerAgent } from './src/mastra/agents/workerAgent';
+
+const task = await workerAgent.run('Execute complex workflow steps');
+```
+
+## 🌐 Agent Networks
+
+AI-Mastra features 5 specialized agent networks for intelligent task routing and multi-agent coordination:
+
+### 🔬 Research Network
+
+Coordinates research tasks with RAG, stock, weather, and MCP agents for comprehensive information gathering.
+
+```typescript
+import { mastra } from './src/mastra';
+
+const research = await mastra.networks.researchNetwork.generate(
+  'Conduct comprehensive research on renewable energy market trends'
+);
+```
+
+### 📊 Data Processing Network
+
+Specializes in data analysis workflows with RAG agent for document processing and insights extraction.
+
+```typescript
+const analysis = await mastra.networks.dataProcessingNetwork.generate(
+  'Analyze quarterly sales data and identify key trends'
+);
+```
+
+### ✍️ Content Creation Network
+
+Uses RAG for research-backed content generation with integrated fact-checking and optimization.
+
+```typescript
+const content = await mastra.networks.contentCreationNetwork.generate(
+  'Create a technical blog post about AI agent architectures'
+);
+```
+
+### 🔧 Technical Operations Network
+
+Handles technical tasks with RAG for documentation analysis and MCP for system operations.
+
+```typescript
+const operations = await mastra.networks.technicalOpsNetwork.generate(
+  'Analyze system logs and recommend optimization strategies'
+);
+```
+
+### 🎯 Comprehensive Network
+
+Full multi-agent coordination for complex tasks requiring multiple specialized capabilities.
+
+```typescript
+const comprehensive = await mastra.networks.comprehensiveNetwork.generate(
+  'Create a complete business analysis with market research, financial data, and strategic recommendations'
+);
+```
+
+### 📊 Network Analytics
+
+Each network includes built-in analytics for performance tracking:
+
+```typescript
+import { NetworkAnalytics } from './src/mastra/networks/agentNetwork';
+
+// Get network performance stats
+const stats = NetworkAnalytics.getNetworkStats('researchNetwork');
+console.log(`Success rate: ${stats.successRate}%`);
+console.log(`Average execution time: ${stats.avgExecutionTime}ms`);
+
+// Check network health
+const health = await NetworkAnalytics.checkNetworkHealth();
+console.log(`Active networks: ${health.activeNetworks}`);
 ```
 
 ### 💼 Worker Agent
@@ -350,15 +481,50 @@ const stockData = await stockPriceTool.execute({
 
 ### 🧠 Vector Query Tool
 
-Semantic search and vector similarity operations using Google embeddings.
+Advanced semantic search and vector similarity operations using Google embeddings with intelligent filtering and ranking.
+
+**Capabilities:**
+
+- Semantic similarity search across stored document vectors
+- Customizable search parameters (topK, filters, thresholds)
+- Integration with agent memory for context-aware retrieval
+- Support for multiple vector stores ("mastra", "context")
 
 ```typescript
 import { vectorQueryTool } from './src/mastra/tools/vectorQueryTool';
 
-// Perform semantic search on stored vectors
+// Perform semantic search with custom parameters
 const results = await vectorQueryTool.execute({
-  context: { query: 'machine learning concepts' }
+  queryText: 'machine learning best practices',
+  topK: 10,
+  filter: 'category:technical',
+  threshold: 0.8
 });
+// Returns: relevant documents with similarity scores and metadata
+```
+
+### 🕸️ GraphRAG Tool
+
+Advanced knowledge graph construction and relationship-based retrieval for complex document analysis.
+
+**Capabilities:**
+
+- Knowledge graph construction from document collections
+- Multi-hop relationship discovery and traversal
+- Semantic querying with graph-based context expansion
+- Ranked result retrieval with relationship scoring
+
+```typescript
+import { graphRAGTool } from './src/mastra/tools/graphRAG';
+
+// Build and query knowledge graphs for relationship discovery
+const graphResult = await graphRAGTool.execute({
+  query: 'relationships between AI technologies and business outcomes',
+  graphType: 'semantic',
+  maxHops: 3,
+  includeRelationships: true
+});
+// Returns: entities, relationships, and context-expanded results
 ```
 
 ### 🔌 MCP Tools
@@ -369,8 +535,8 @@ Model Context Protocol integration for external system interactions and dynamic 
 import { mcp } from './src/mastra/tools/mcp';
 
 // Dynamic MCP tool access for filesystem, terminal, web search, and sandbox operations
-const mcpResult = await mcp.execute({
-  context: { operation: 'file_read', path: '/data/document.txt' }
+const mcpResult = await mcp.callTool('file_read', {
+  path: '/data/document.txt'
 });
 ```
 
@@ -383,27 +549,10 @@ import { chunkerTool } from './src/mastra/tools/chunkerTool';
 
 // Process documents for vector storage
 const chunks = await chunkerTool.execute({
-  context: { 
-    text: 'Large document content',
-    strategy: 'recursive',
-    chunkSize: 512
-  }
-});
-```
-
-### 🕸️ GraphRAG Tool
-
-Knowledge graph construction and querying for advanced retrieval-augmented generation.
-
-```typescript
-import { graphRAGTool } from './src/mastra/tools/graphRAG';
-
-// Build and query knowledge graphs
-const graphResult = await graphRAGTool.execute({
-  context: { 
-    query: 'relationships between concepts',
-    graphType: 'semantic'
-  }
+  text: 'Large document content',
+  strategy: 'recursive',
+  chunkSize: 512,
+  overlap: 50
 });
 ```
 
@@ -652,27 +801,78 @@ import { agentStorage, agentVector } from './src/mastra/agentMemory';
 
 ## 📊 Monitoring & Observability
 
-AI-Mastra provides comprehensive observability through LangSmith integration with full tracing capabilities.
+AI-Mastra provides comprehensive observability through LangSmith integration with full tracing capabilities, enhanced prompt management, and advanced analytics.
 
 ### LangSmith Integration
 
 ```typescript
 import { createTracedGoogleModel } from './src/mastra/observability';
 
-// All models automatically traced
+// All models automatically traced with enhanced configuration
 const model = createTracedGoogleModel('gemini-2.0-flash-exp', {
   name: 'agent-model',
-  tags: ['production', 'agent-interaction']
+  tags: ['production', 'agent-interaction'],
+  temperature: 0.7,
+  thinkingConfig: { thinkingBudget: 2048 }
 });
 ```
 
-### Observability Features
+### LangSmith Hub & Prompt Management
 
-- **Real-time Tracing**: Complete agent conversation flows
-- **Token Usage Tracking**: Cost monitoring and optimization
-- **Performance Metrics**: Response times and success rates
-- **Error Tracking**: Comprehensive error logging and debugging
-- **Custom Tags**: Categorization and filtering of operations
+```typescript
+import { LangSmithHubManager, promptManager } from './src/mastra/observability';
+
+// Pull prompts from LangSmith Hub
+const hubPrompt = await LangSmithHubManager.pullPrompt('agent-system-prompt', {
+  version: 'latest',
+  includeModel: true
+});
+
+// Local prompt management with templating
+promptManager.addPrompt({
+  id: 'rag-query-prompt',
+  template: 'Search for information about {topic} with focus on {aspects}',
+  category: 'search',
+  tags: ['rag', 'knowledge'],
+  variables: ['topic', 'aspects']
+});
+
+const renderedPrompt = promptManager.renderPrompt('rag-query-prompt', {
+  topic: 'renewable energy',
+  aspects: 'market trends and technology advances'
+});
+```
+
+### Enhanced Observability Features
+
+- **Real-time Tracing**: Complete agent conversation flows with LangSmith integration
+- **Token Usage Tracking**: Cost monitoring and optimization across all models
+- **Performance Metrics**: Response times, success rates, and throughput analysis
+- **Error Tracking**: Comprehensive error logging with `ErrorTracker` and debugging tools
+- **Memory Analytics**: `MemoryTracker` for detailed memory operation performance
+- **Custom Tags**: Categorization and filtering of operations with enhanced metadata
+
+### Advanced Analytics & Tracking
+
+```typescript
+import { 
+  MemoryTracker, 
+  ErrorTracker, 
+  ObservabilityUtils 
+} from './src/mastra/observability';
+
+// Memory operation analytics
+const memoryStats = MemoryTracker.getPerformanceStats();
+console.log(`Average memory operation duration: ${memoryStats.avgDuration}ms`);
+console.log(`Memory operation success rate: ${memoryStats.successRate}%`);
+
+// Error tracking and debugging
+ErrorTracker.recordError('agent-generation', new Error('Model timeout'));
+const recentErrors = ErrorTracker.getRecentErrors(5);
+
+// Agent instrumentation for enhanced tracing
+const instrumentedAgent = ObservabilityUtils.instrumentAgent(ragAgent, 'rag-agent');
+```
 
 ### Logging
 
@@ -696,11 +896,63 @@ AI-Mastra implements a sophisticated memory system using LibSQL for persistent s
 import { agentMemory } from './src/mastra/agentMemory';
 
 // Shared memory across all agents
-const memoryConfig = {
-  storage: 'LibSQL', // file:./memory.db
-  vectorStore: 'LibSQLVector', // file:./vector.db
-  embeddings: 'Google gemini-embedding-exp-03-07'
-};
+export const agentMemory = new Memory({
+  storage: agentStorage,
+  vector: agentVector,
+  embedder: fastembed,
+  options: {
+    lastMessages: 200,
+    semanticRecall: {
+      topK: 3,
+      messageRange: {
+        before: 5,
+        after: 2,
+      },
+    },
+    workingMemory: {
+      enabled: true,
+      template: `
+# Tasks & Goals
+- Goal ID:
+- Goal Name:
+- Description:
+- Status:
+- Due Date:
+- Task ID:
+- Title:
+- Task Name:
+- Description:
+- Assigned To:
+- Priority:
+- Due Date:
+- Status:
+`,
+    },
+  },
+  processors: [
+    new TokenLimiter(1000000),
+    new (class extends MemoryProcessor {
+      private limit: number;
+      constructor(limit: number = 1000000) {
+        super({ name: 'SummarizeProcessor' });
+        this.limit = limit;
+      }
+      process(messages: CoreMessage[]): CoreMessage[] {
+        if (messages.length <= this.limit) {
+          return messages;
+        }
+        const overflowCount = messages.length - this.limit;
+        const recent = messages.slice(-this.limit);
+        // Placeholder summary inserted as system message
+        const summaryMessage: CoreMessage = {
+          role: 'system',
+          content: `Summary of ${overflowCount} earlier messages.`,
+        };
+        return [summaryMessage, ...recent];
+      }
+    })(),
+  ],
+});
 ```
 
 ### Memory Features

@@ -7,12 +7,14 @@
  *
  * @see https://ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai
  */
-import { google as baseGoogle, GoogleGenerativeAIProviderSettings, GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
+import { google as baseGoogle, GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 
 /**
  * Export a base Google model with search grounding and dynamic retrieval enabled (default for most agents)
  */
 export const baseGoogleModel = (modelId = 'gemini-2.0-flash-exp') => baseGoogle(modelId, {
+  structuredOutputs: true,
+  cachedContent: '{cachedContent}',
   useSearchGrounding: true,
   dynamicRetrievalConfig: {
     mode: 'MODE_DYNAMIC',
@@ -21,24 +23,38 @@ export const baseGoogleModel = (modelId = 'gemini-2.0-flash-exp') => baseGoogle(
 });
 
 /**
- * Export createMastraGoogleProvider for advanced/thinking config use (e.g. Gemini 2.5+)
- * Usage: createMastraGoogleProvider('gemini-2.5-flash-preview-05-20', { thinkingConfig: { thinkingBudget: 2048 } })
+ * Export createMastraGoogleProvider for advanced configuration with all Google provider options
+ * Supports thinking config, safety settings, generation config, and all other Google AI options
+ * 
+ * @param modelId - Google AI model ID (e.g., 'gemini-2.5-flash-preview-05-20')
+ * @param options - All Google AI provider options including thinkingConfig, safetySettings, etc.
  */
 export function createMastraGoogleProvider(
   modelId = 'gemini-2.5-flash-preview-05-20',
-  options: GoogleGenerativeAIProviderOptions = {}
+  options: Partial<GoogleGenerativeAIProviderOptions> = {}
 ) {
-  // Use the base Google model with provided options
-  return baseGoogle(modelId, {
-    ...options,
-    useSearchGrounding: true, // Enable search grounding by default
+  // Default thinking budget for Gemini 2.5+ models
+  const defaultOptions = {
+    thinkingConfig: { thinkingBudget: 2048 },
+    structuredOutputs: true,
+    cachedContent: '{cachedContent}',
+    useSearchGrounding: true,
     dynamicRetrievalConfig: {
-      mode: 'MODE_DYNAMIC',
+      mode: 'MODE_DYNAMIC' as const,
       dynamicThreshold: 0.8,
     },
-  });
-}
+  };
 
+  // Merge default options with provided options
+  const mergedOptions = {
+    ...defaultOptions,
+    ...options,
+    // Ensure thinkingConfig is properly merged
+    thinkingConfig: options.thinkingConfig || defaultOptions.thinkingConfig
+  };
+
+  return baseGoogle(modelId, mergedOptions);
+}
 export type { GoogleGenerativeAIProviderOptions };
 
 

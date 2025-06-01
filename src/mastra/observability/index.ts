@@ -1,19 +1,26 @@
 // Generated on 2025-06-01
 /**
- * LangSmith Observability for Mastra
+ * Enhanced LangSmith Observability for Mastra with AI SDK Integration
  * 
- * This module provides tracing using LangSmith's traceable decorator
- * and your configured environment variables.
+ * This module provides comprehensive tracing using LangSmith's traceable decorator,
+ * AI SDK telemetry integration, and enhanced prompt management.
  * 
  * @module observability
  */
 
 import { traceable } from "langsmith/traceable";
+import { z } from 'zod';
+
+// Re-export existing functionality
+export * from './googleProvider';
+export * from './langHub';
+export * from './promptManager';
 import { wrapAISDKModel } from "langsmith/wrappers/vercel";
 import { AISDKExporter } from "langsmith/vercel";
 import { PinoLogger } from '@mastra/loggers';
 import { createMastraGoogleProvider } from './googleProvider';
 import { formatISO } from 'date-fns';
+import { wrapLanguageModel } from "ai";
 
 /**
  * Observability logger for tracing and monitoring
@@ -425,75 +432,277 @@ export const measureMemoryOperation = async <T>(
   }
 }
 
-/**
- * Initialize observability system
- * This initialization logs the configuration
- */
-export const initializeObservability = () => {
-  observabilityLogger.info('Mastra observability initialized', {
-    langsmithProject: langsmithConfig.project,
-    tracingEnabled: langsmithConfig.tracingEnabled,
-    environment: process.env.NODE_ENV || 'development'
-  });
-
-  if (!langsmithConfig.apiKey) {
-    observabilityLogger.warn('LANGSMITH_API_KEY not found in environment variables');
-  }
-
-  if (langsmithConfig.tracingEnabled) {
-    observabilityLogger.info('LangSmith tracing is enabled');
-  } else {
-    observabilityLogger.info('LangSmith tracing is disabled');
-  }
-};
 
 /**
- * Creates a Google AI model with LangSmith tracing enabled and Mastra search grounding config
- *
- * @param modelId - Google AI model ID (e.g., 'gemini-2.0-flash-exp')
- * @param options - LangSmith tracing options and Google provider options
- * @returns Wrapped Google AI model with automatic tracing and search grounding
+ * Enhanced AI SDK Integration
  */
-export const createTracedGoogleModel = (
-  modelId: string = 'gemini-2.0-flash-exp',
-  options?: { name?: string; tags?: string[]; googleOptions?: Record<string, any> }
-) => {
-  // Use the enhanced provider with search grounding/dynamic retrieval
-  const baseModel = createMastraGoogleProvider(modelId, options?.googleOptions);
 
-  if (!langsmithConfig.tracingEnabled) {
-    observabilityLogger.debug('LangSmith tracing disabled, returning unwrapped model');
-    return baseModel;
-  }
+const logger = new PinoLogger({ name: 'enhanced-observability', level: 'info' });
 
-  return wrapAISDKModel(baseModel, {
-    name: options?.name || `google-${modelId}`,
-    tags: ['google-ai', 'ai-sdk', 'mastra', ...(options?.tags || [])],
-    metadata: {
-      provider: 'google',
-      modelId,
-      project: langsmithConfig.project,
-      timestamp: formatISO(new Date())
-    }
-  });
-};
-// Export everything needed
+// Export everything needed for LangSmith integration
 export {
   traceable,
   wrapAISDKModel,
   AISDKExporter
 };
 
-// TODO: 2025-06-01 - promptManager.js does not export any members or is not a module. Remove or fix as needed.
-// export {
-//   pushPrompt,
-//   pullPrompt,
-//   listPrompts,
-//   deletePrompt,
-//   likePrompt,
-//   unlikePrompt,
-//   loadSystemPrompts,
-//   getSystemPrompt,
-//   SYSTEM_PROMPTS,
-//   langsmithClient
-// } from './promptManager.js';
+// Re-export formatISO for timestamp formatting
+export { formatISO } from 'date-fns';
+
+/**
+ * Enhanced AI SDK Exporter with custom configuration
+ */
+export class EnhancedAISDKExporter extends AISDKExporter {
+  constructor(config?: { 
+    client?: any; 
+    debug?: boolean;
+    metadata?: Record<string, any>;
+  }) {
+    super(config);
+    if (config?.debug) {
+      logger.info('AI SDK Exporter initialized in debug mode');
+    }
+  }
+
+  /**
+   * Get enhanced settings with metadata
+   */
+  static getEnhancedSettings(options?: {
+    runName?: string;
+    runId?: string;
+    metadata?: Record<string, any>;
+    tags?: string[];
+  }) {
+    const baseSettings = this.getSettings(options);
+    
+    return {
+      ...baseSettings,
+      metadata: {
+        ...baseSettings.metadata,
+        ...options?.metadata,
+        timestamp: new Date().toISOString(),
+        service: 'mastra-ai-sdk'
+      }
+    };
+  }
+}
+
+/**
+ * Create a traced Google model with LangSmith integration
+ * Works with any Google provider configuration from googleProvider.ts
+ * 
+ * @param modelId - Google AI model ID (e.g., 'gemini-2.0-flash-exp')
+ * @param options - Comprehensive options including all Google provider options
+ * @returns Wrapped Google AI model with automatic LangSmith tracing
+ */
+export function createTracedGoogleModel(
+  modelId: string,
+  options?: {
+    // LangSmith tracing options
+    name?: string;
+    tags?: string[];
+    metadata?: Record<string, any>;
+    runName?: string;
+    
+    // Google AI provider options (passed through to createMastraGoogleProvider)
+    temperature?: number;
+    maxTokens?: number;
+    topP?: number;
+    topK?: number;
+    presencePenalty?: number;
+    frequencyPenalty?: number;
+    seed?: number;
+    thinkingConfig?: {
+      thinkingBudget?: number;
+    };
+    
+    // Additional Google provider options
+    safetySettings?: Array<{
+      category: string;
+      threshold: string;
+    }>;
+    generationConfig?: Record<string, any>;
+    tools?: Array<any>;
+    toolConfig?: Record<string, any>;
+    systemInstruction?: string;
+    
+    // Any other Google provider options
+    [key: string]: any;
+  }
+) {
+  // Extract LangSmith-specific options
+  const { name, tags, metadata, runName, ...googleProviderOptions } = options || {};
+  
+  // Use existing provider creation with all Google options
+  const baseModel = createMastraGoogleProvider(modelId, googleProviderOptions);
+
+  if (!langsmithConfig.tracingEnabled) {
+    observabilityLogger.debug('LangSmith tracing disabled, returning unwrapped model');
+    return baseModel;
+  }
+
+  // Wrap with LangSmith tracing using AI SDK wrapper
+  const tracedModel = wrapAISDKModel(baseModel, {
+    name: name || `google-${modelId}`,
+    tags: tags || ['google', 'ai-sdk', 'mastra'],
+    metadata: {
+      modelId,
+      provider: 'google',
+      framework: 'ai-sdk',
+      temperature: googleProviderOptions.temperature,
+      maxTokens: googleProviderOptions.maxTokens,
+      thinkingBudget: googleProviderOptions.thinkingConfig?.thinkingBudget,
+      ...metadata
+    }
+  });
+
+  logger.info(`Created traced Google model: ${modelId}`, {
+    name: name || `google-${modelId}`,
+    tags: tags || ['google', 'ai-sdk', 'mastra'],
+    temperature: googleProviderOptions.temperature,
+    thinkingBudget: googleProviderOptions.thinkingConfig?.thinkingBudget
+  });
+
+  return tracedModel;
+}
+/**
+ * Create a traceable function with LangSmith integration
+ */
+export function createTraceableFunction<T extends (...args: any[]) => any>(
+  fn: T,
+  options: {
+    name: string;
+    runType?: 'llm' | 'chain' | 'tool' | 'retriever' | 'embedding' | 'parser';
+    tags?: string[];
+    metadata?: Record<string, any>;
+  }
+): T {
+  return traceable(fn, {
+    name: options.name,
+    run_type: options.runType || 'chain',
+    tags: options.tags,
+    metadata: {
+      framework: 'mastra',
+      ...options.metadata
+    }
+  }) as T;
+}
+
+/**
+ * Trace agent operations with enhanced context
+ */
+export function traceAgentOperation<T extends (...args: any[]) => any>(
+  operation: T,
+  agentName: string,
+  operationType: 'generate' | 'callTool' | 'processMessage' | 'search' | 'analyze'
+): T {
+  return createTraceableFunction(operation, {
+    name: `${agentName}-${operationType}`,
+    runType: operationType === 'generate' ? 'llm' : 'chain',
+    tags: ['agent', agentName, operationType],
+    metadata: {
+      agentName,
+      operationType,
+      component: 'agent'
+    }
+  });
+}
+
+/**
+ * Trace network operations
+ */
+export function traceNetworkOperation<T extends (...args: any[]) => any>(
+  operation: T,
+  networkName: string,
+  operationType: 'route' | 'coordinate' | 'execute' | 'analyze'
+): T {
+  return createTraceableFunction(operation, {
+    name: `${networkName}-${operationType}`,
+    runType: 'chain',
+    tags: ['network', networkName, operationType],
+    metadata: {
+      networkName,
+      operationType,
+      component: 'network'
+    }
+  });
+}
+
+/**
+ * Trace RAG operations with detailed context
+ */
+export function traceRAGOperation<T extends (...args: any[]) => any>(
+  operation: T,
+  operationType: 'vectorSearch' | 'graphSearch' | 'synthesis' | 'analysis'
+): T {
+  return createTraceableFunction(operation, {
+    name: `rag-${operationType}`,
+    runType: operationType.includes('Search') ? 'retriever' : 'chain',
+    tags: ['rag', operationType, 'knowledge'],
+    metadata: {
+      operationType,
+      component: 'rag'
+    }
+  });
+}
+
+/**
+ * Enhanced observability utilities
+ */
+export const ObservabilityUtils = {
+  /**
+   * Get AI SDK telemetry settings with project context
+   */
+  getAISDKSettings(options?: {
+    runName?: string;
+    agentName?: string;
+    operationType?: string;
+    metadata?: Record<string, any>;
+  }) {
+    return EnhancedAISDKExporter.getEnhancedSettings({
+      runName: options?.runName || 
+               (options?.agentName && options?.operationType) ? 
+               `${options.agentName}-${options.operationType}` : 
+               undefined,
+      metadata: {
+        ...options?.metadata,
+        agentName: options?.agentName,
+        operationType: options?.operationType
+      },
+      tags: [
+        ...(options?.agentName ? [options.agentName] : []),
+        ...(options?.operationType ? [options.operationType] : [])
+      ]
+    });
+  },
+
+  /**
+   * Create instrumentation for agent methods
+   */
+  instrumentAgent(agent: any, agentName: string) {
+    if (agent.generate) {
+      agent.generate = traceAgentOperation(agent.generate.bind(agent), agentName, 'generate');
+    }
+    if (agent.callTool) {
+      agent.callTool = traceAgentOperation(agent.callTool.bind(agent), agentName, 'callTool');
+    }
+    return agent;
+  },
+
+  /**
+   * Create instrumentation for network methods
+   */
+  instrumentNetwork(network: any, networkName: string) {
+    if (network.generate) {
+      network.generate = traceNetworkOperation(network.generate.bind(network), networkName, 'execute');
+    }
+    if (network.route) {
+      network.route = traceNetworkOperation(network.route.bind(network), networkName, 'route');
+    }
+    return network;
+  }
+};
+
+function initializeObservability() {
+  throw new Error("Function not implemented.");
+}
