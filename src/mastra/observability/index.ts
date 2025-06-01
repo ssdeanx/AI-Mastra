@@ -255,16 +255,16 @@ export {
   AISDKExporter
 };
 
-// Export prompt management utilities
-export {
-  pushPrompt,
-  pullPrompt,
-  listPrompts,
-  deletePrompt,
-  likePrompt,
-  unlikePrompt,
-  loadSystemPrompts,
-  getSystemPrompt,
-  SYSTEM_PROMPTS,
-  langsmithClient
-} from './promptManager';
+// TODO: 2025-06-01 - promptManager.js does not export any members or is not a module. Remove or fix as needed.
+// export {
+//   pushPrompt,
+//   pullPrompt,
+//   listPrompts,
+//   deletePrompt,
+//   likePrompt,
+//   unlikePrompt,
+//   loadSystemPrompts,
+//   getSystemPrompt,
+//   SYSTEM_PROMPTS,
+//   langsmithClient
+// } from './promptManager.js';
