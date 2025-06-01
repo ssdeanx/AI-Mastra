@@ -105,6 +105,52 @@ export const createTraceableWorkflowStep = <T extends (...args: any[]) => any>(
 };
 
 /**
+ * Creates a traceable memory operation wrapper for LangSmith monitoring
+ * 
+ * @param operationName - Name of the memory operation
+ * @param memoryFunction - The memory function to wrap
+ * @returns Traceable memory function with enhanced metadata
+ */
+export const createTraceableMemoryOperation = <T extends (...args: any[]) => any>(
+  operationName: string,
+  memoryFunction: T
+): T => {
+  return traceable(memoryFunction, {
+    name: `memory:${operationName}`,
+    tags: ['memory', 'persistence', 'mastra'],
+    metadata: {
+      operationType: 'memory-operation',
+      operationName,
+      project: langsmithConfig.project,
+      timestamp: formatISO(new Date())
+    }
+  }) as T;
+};
+
+/**
+ * Creates a traceable thread operation wrapper for LangSmith monitoring
+ * 
+ * @param operationName - Name of the thread operation
+ * @param threadFunction - The thread function to wrap
+ * @returns Traceable thread function with enhanced metadata
+ */
+export const createTraceableThreadOperation = <T extends (...args: any[]) => any>(
+  operationName: string,
+  threadFunction: T
+): T => {
+  return traceable(threadFunction, {
+    name: `thread:${operationName}`,
+    tags: ['thread', 'conversation', 'memory', 'mastra'],
+    metadata: {
+      operationType: 'thread-operation',
+      operationName,
+      project: langsmithConfig.project,
+      timestamp: formatISO(new Date())
+    }
+  }) as T;
+};
+
+/**
  * Performance measurement utility
  * 
  * @param operation - Name of the operation to measure
@@ -193,6 +239,189 @@ export class ErrorTracker {
    */
   static clearErrors(): void {
     this.errors = [];
+  }
+}
+
+/**
+ * Memory performance tracker for detailed analytics
+ */
+export class MemoryTracker {
+  private static operations: Array<{
+    timestamp: string;
+    operation: string;
+    resourceId?: string;
+    threadId?: string;
+    duration: number;
+    status: 'success' | 'error';
+    metadata?: any;
+  }> = [];
+
+  /**
+   * Records a memory operation for analytics
+   * 
+   * @param operation - Operation name
+   * @param resourceId - Resource identifier
+   * @param threadId - Thread identifier
+   * @param duration - Operation duration in ms
+   * @param status - Operation status
+   * @param metadata - Additional metadata
+   */
+  static recordOperation(
+    operation: string,
+    resourceId: string | undefined,
+    threadId: string | undefined,
+    duration: number,
+    status: 'success' | 'error',
+    metadata?: any
+  ): void {
+    const record = {
+      timestamp: formatISO(new Date()),
+      operation,
+      resourceId,
+      threadId,
+      duration,
+      status,
+      metadata
+    };
+
+    this.operations.push(record);
+    
+    // Keep only last 500 operations to prevent memory issues
+    if (this.operations.length > 500) {
+      this.operations.shift();
+    }
+
+    observabilityLogger.info(`Memory operation: ${operation}`, record);
+  }
+
+  /**
+   * Gets memory operation analytics
+   * 
+   * @param limit - Number of recent operations to return
+   * @returns Recent memory operation records
+   */
+  static getOperationHistory(limit: number = 50): typeof MemoryTracker.operations {
+    return this.operations.slice(-limit);
+  }
+
+  /**
+   * Gets memory analytics by resource
+   * 
+   * @param resourceId - Resource identifier
+   * @returns Operations for specific resource
+   */
+  static getResourceOperations(resourceId: string): typeof MemoryTracker.operations {
+    return this.operations.filter(op => op.resourceId === resourceId);
+  }
+
+  /**
+   * Gets memory analytics by thread
+   * 
+   * @param threadId - Thread identifier
+   * @returns Operations for specific thread
+   */
+  static getThreadOperations(threadId: string): typeof MemoryTracker.operations {
+    return this.operations.filter(op => op.threadId === threadId);
+  }
+
+  /**
+   * Gets performance statistics
+   * 
+   * @returns Performance analytics
+   */
+  static getPerformanceStats(): {
+    totalOperations: number;
+    avgDuration: number;
+    successRate: number;
+    operationBreakdown: Record<string, number>;
+    errorRate: number;
+  } {
+    const operations = this.operations;
+    const totalOps = operations.length;
+    
+    if (totalOps === 0) {
+      return {
+        totalOperations: 0,
+        avgDuration: 0,
+        successRate: 0,
+        operationBreakdown: {},
+        errorRate: 0
+      };
+    }
+
+    const successfulOps = operations.filter(op => op.status === 'success');
+    const avgDuration = operations.reduce((sum, op) => sum + op.duration, 0) / totalOps;
+    const operationBreakdown = operations.reduce((acc, op) => {
+      acc[op.operation] = (acc[op.operation] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return {
+      totalOperations: totalOps,
+      avgDuration: Math.round(avgDuration * 100) / 100,
+      successRate: (successfulOps.length / totalOps) * 100,
+      operationBreakdown,
+      errorRate: ((totalOps - successfulOps.length) / totalOps) * 100
+    };
+  }
+
+  /**
+   * Clears all recorded operations
+   */
+  static clearHistory(): void {
+    this.operations = [];
+  }
+}
+
+/**
+ * Enhanced performance measurement specifically for memory operations
+ * 
+ * @param operation - Name of the memory operation
+ * @param resourceId - Optional resource identifier
+ * @param threadId - Optional thread identifier
+ * @param fn - Function to measure
+ * @returns Result of the function with memory-specific tracking
+ */
+export const measureMemoryOperation = async <T>(
+  operation: string,
+  resourceId: string | undefined,
+  threadId: string | undefined,
+  fn: () => Promise<T>
+): Promise<T> => {
+  const startTime = Date.now();
+  
+  try {
+    const result = await fn();
+    const duration = Date.now() - startTime;
+    
+    MemoryTracker.recordOperation(operation, resourceId, threadId, duration, 'success');
+    
+    observabilityLogger.debug(`Memory operation completed: ${operation}`, {
+      operation,
+      resourceId,
+      threadId,
+      duration: `${duration}ms`,
+      status: 'success'
+    });
+    
+    return result;
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    
+    MemoryTracker.recordOperation(operation, resourceId, threadId, duration, 'error', {
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+    
+    observabilityLogger.error(`Memory operation failed: ${operation}`, {
+      operation,
+      resourceId,
+      threadId,
+      duration: `${duration}ms`,
+      status: 'error',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+    
+    throw error;
   }
 }
 

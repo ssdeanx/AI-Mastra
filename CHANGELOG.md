@@ -2,6 +2,41 @@
 
 All notable changes to this project are documented in this file.
 
+## [v0.0.4] - 2025-06-01
+
+### Enhanced
+
+- **MCP Dual-Client Architecture**
+  - Implemented separate MCP clients for improved reliability and SSE support:
+    - `mcpStdio`: Primary client for stdio-based servers (filesystem, jsSandbox, docker)
+    - `mcpSmithery`: Secondary client for SSE-based Smithery servers (winterm, duckduckgo)
+  - Added comprehensive MCP operation tracing with `MCPTracker` class for detailed analytics
+  - Implemented graceful shutdown handlers for all MCP clients (SIGTERM, SIGINT, beforeExit)
+  - Added resource caching with TTL support for enhanced performance
+  - Introduced health check functionality for all MCP servers
+
+- **MCP Observability & Tracing**
+  - Added `traceMCPOperation` wrapper for comprehensive operation tracking
+  - Implemented performance metrics collection (duration, success rates, error tracking)
+  - Added server-specific analytics and operation history
+  - Integrated with existing observability system (LangSmith, error tracking)
+
+### Fixed
+
+- **Agent-MCP Integration**
+  - Fixed `mcp.getTools()` to return proper object format expected by Agent initialization
+  - Maintained backward compatibility while adding dual-client support
+  - Resolved SSE connection issues for Smithery-based servers with proper `eventSourceInit` configuration
+  - Added robust error handling for server unavailability and connection failures
+
+### Changed
+
+- **MCP Tool Interface**
+  - Enhanced main `mcp` export to intelligently route operations to appropriate client
+  - Added `getToolsArray()` method for internal processing while maintaining `getTools()` object format
+  - Improved error logging and fallback behavior when individual servers fail
+  - Environment variable validation with graceful degradation when SMITHERY_API is not configured
+
 ## [v0.0.3] - 2025-06-01
 
 ### Fixed

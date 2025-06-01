@@ -36,8 +36,9 @@ export const supervisorAgent: Agent = new Agent({
     
   }),
   tools: {
-    ...(await mcp.getTools()),
-    vectorQueryTool
+    vectorQueryTool,
+    ...(await mcp.getTools())
   },
+  
   memory: agentMemory,
 });
