@@ -45,8 +45,7 @@ export const threadInfoTool = createTool({
   execute: async (context) => {
     return {
       threadId: context.threadId,
-      resourceId: context.includeResource ? context.resourceId : undefined,
+      resourceId: context.context.includeResource ? context.resourceId : undefined,
       timestamp: new Date().toISOString(),
     };
-  },
-});
+  },});

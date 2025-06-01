@@ -10,14 +10,14 @@ const logger = new PinoLogger({
 
   })
 // Initialize the Mastra logger
-logger.info('Mastra mcpAgent initialized');
+logger.info('Mastra supervisorAgent initialized');
 
 
 /**
- * MCP Agent instance for handling Model Context Protocol interactions
+ * Supervisor Agent instance for handling user interactions
  */
-export const mcpAgent: Agent = new Agent({
-  name: 'MCP Agent',
+export const supervisorAgent: Agent = new Agent({
+  name: 'Supervisor Agent',
   instructions: `
       You are a helpful assistant that provides accurate information about the Model Context Protocol (MCP).
 
@@ -31,8 +31,8 @@ export const mcpAgent: Agent = new Agent({
 `,
   model: google('gemini-2.0-flash-exp'),
   tools: {
-    vectorQueryTool,
-    ...(await mcp.getTools())
+    ...(await mcp.getTools()),
+    vectorQueryTool
   },
   memory: agentMemory,
 });

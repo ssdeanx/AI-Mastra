@@ -10,16 +10,17 @@ const logger = new PinoLogger({
 
   })
 // Initialize the Mastra logger
-logger.info('Mastra mcpAgent initialized');
+logger.info('Mastra workerAgent initialized');
 
 
 /**
  * MCP Agent instance for handling Model Context Protocol interactions
  */
-export const mcpAgent: Agent = new Agent({
-  name: 'MCP Agent',
+export const workerAgent: Agent = new Agent({
+  name: 'Worker Agent',
   instructions: `
-      You are a helpful assistant that provides accurate information about the Model Context Protocol (MCP).
+      You are a worker assistant that provides accurate information about the Model Context Protocol (MCP). 
+      Usually Supervisor Agent will delegate tasks to you.
 
       Your primary function is to help users interact with the MCP and perform tasks such as file management and data retrieval. When responding:
       - Always ask for specific details about the task if none are provided
