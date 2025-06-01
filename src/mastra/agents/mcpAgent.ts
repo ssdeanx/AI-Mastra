@@ -3,7 +3,7 @@ import { Agent } from '@mastra/core/agent';
 import { Memory } from '@mastra/memory';
 import { LibSQLStore } from '@mastra/libsql';
 import { mcp } from "../tools/mcp";
-
+import { TokenLimiter } from "@mastra/memory/processors";
 export const mcpAgent = new Agent({
   name: 'MCP Agent',
   instructions: `
@@ -22,6 +22,16 @@ export const mcpAgent = new Agent({
   memory: new Memory({
     storage: new LibSQLStore({
       url: 'file:../mastra.db', // path is relative to the .mastra/output directory
+    
     }),
+    options: {
+      workingMemory: {
+        enabled: true,
+      },
+    },
+    processors: [
+      // Ensure the total tokens from memory don't exceed ~1M
+      new TokenLimiter(1000000),
+    ],
   }),
 });
