@@ -1,8 +1,8 @@
-import { google } from '@ai-sdk/google';
 import { Agent } from '@mastra/core/agent';
 import { weatherTool } from '../tools/weather-tool';
 import { agentMemory } from '../agentMemory';
 import { vectorQueryTool } from '../tools/vectorQueryTool';
+import { createTracedGoogleModel } from '../observability';
 
 export const weatherAgent = new Agent({
   name: 'Weather Agent',
@@ -18,7 +18,10 @@ export const weatherAgent = new Agent({
 
       Use the weatherTool to fetch current weather data.
 `,
-  model: google('gemini-2.0-flash-exp'),
+  model: createTracedGoogleModel('gemini-2.0-flash-exp', {
+    name: 'weather-agent-model',
+    tags: ['agent', 'weather', 'location-data']
+  }),
   tools: { weatherTool, vectorQueryTool },
   memory: agentMemory
 });

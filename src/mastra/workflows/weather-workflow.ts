@@ -2,8 +2,12 @@ import { google } from '@ai-sdk/google';
 import { Agent } from '@mastra/core/agent';
 import { createStep, createWorkflow } from '@mastra/core/workflows';
 import { z } from 'zod';
+import { createTracedGoogleModel } from '../observability';
 
-const llm = google('gemini-1.5-pro-latest');
+const llm = createTracedGoogleModel('gemini-2.0-flash-exp', {
+  name: 'weather-workflow-model',
+  tags: ['workflow', 'weather', 'activity-planning']
+});
 
 const agent = new Agent({
   name: 'Weather Agent',

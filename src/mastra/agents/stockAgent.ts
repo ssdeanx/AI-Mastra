@@ -3,6 +3,7 @@ import { Agent } from '@mastra/core/agent';
 import { stockPriceTool } from '../tools/stock-tools';
 import { agentMemory } from '../agentMemory';
 import { vectorQueryTool } from '../tools/vectorQueryTool';
+import { createTracedGoogleModel } from '../observability';
 export const stockAgent = new Agent({
   name: 'Stock Agent',
   instructions: `
@@ -17,7 +18,10 @@ export const stockAgent = new Agent({
 
       Use the stockTool to fetch current stock data.
 `,
-  model: google('gemini-2.0-flash-exp'),
+  model: createTracedGoogleModel('gemini-2.0-flash-exp', {
+    name: 'stock-agent-model',
+    tags: ['agent', 'stock', 'financial-data']
+  }),
   tools: { stockPriceTool, vectorQueryTool },
   memory: agentMemory
 });

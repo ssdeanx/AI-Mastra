@@ -13,6 +13,16 @@ import { google } from '@ai-sdk/google';
 
 const logger = new PinoLogger({ name: 'agentMemory', level: 'info' });
 
+// Create shared storage instance
+export const agentStorage = new LibSQLStore({
+  url: process.env.DATABASE_URL || 'file:./memory.db',
+  authToken: process.env.DATABASE_AUTH_TOKEN || '',
+});
+
+export const agentVector = new LibSQLVector({
+  connectionUrl: process.env.DATABASE_URL || 'file:./vector.db',
+});
+
 const createThreadSchema = z.object({ resourceId: z.string().nonempty(), threadId: z.string().optional(), title: z.string().optional(), metadata: z.record(z.unknown()).optional() });
 const getMessagesSchema = z.object({ resourceId: z.string().nonempty(), threadId: z.string().nonempty(), last: z.number().int().min(1).optional() });
 const threadIdSchema = z.string().nonempty();
@@ -47,13 +57,8 @@ const summarySchema = z.object({ resourceId: z.string().nonempty(), threadId: z.
  * await agent.generate('Hello', { resourceId: 'user-123', threadId: 'thread-abc' });
  */
 export const agentMemory = new Memory({
-  storage: new LibSQLStore({
-    url: process.env.DATABASE_URL || 'file:./memory.db',
-    authToken: process.env.DATABASE_AUTH_TOKEN || '',
-  }),
-  vector: new LibSQLVector({
-    connectionUrl: 'file:./vector.db',
-  }),
+  storage: agentStorage,
+  vector: agentVector,
   embedder: fastembed,
   options: {
     lastMessages: 50,
@@ -108,8 +113,14 @@ export const agentMemory = new Memory({
     })(),
   ],
 });
+
 /**
  * Create a new memory thread for a user/session.
+ * @param resourceId - User/resource identifier
+ * @param title - Optional thread title
+ * @param metadata - Optional thread metadata
+ * @param threadId - Optional specific thread ID
+ * @returns Promise resolving to thread information
  */
 export async function createThread(resourceId: string, title?: string, metadata?: Record<string, unknown>, threadId?: string) {
   const params = createThreadSchema.parse({ resourceId, threadId, title, metadata });
@@ -122,10 +133,11 @@ export async function createThread(resourceId: string, title?: string, metadata?
 }
 
 /**
- * Example: Query messages for a thread (see Mastra docs for more)
- * @param resourceId User/resource ID
- * @param threadId Thread ID
- * @param last Number of last messages to retrieve
+ * Query messages for a thread
+ * @param resourceId - User/resource ID
+ * @param threadId - Thread ID
+ * @param last - Number of last messages to retrieve
+ * @returns Promise resolving to thread messages
  */
 export async function getThreadMessages(resourceId: string, threadId: string, last = 10) {
   const params = getMessagesSchema.parse({ resourceId, threadId, last });
@@ -139,6 +151,8 @@ export async function getThreadMessages(resourceId: string, threadId: string, la
 
 /**
  * Retrieve a memory thread by its ID.
+ * @param threadId - Thread identifier
+ * @returns Promise resolving to thread information
  */
 export async function getThreadById(threadId: string) {
   const id = threadIdSchema.parse(threadId);
@@ -152,6 +166,8 @@ export async function getThreadById(threadId: string) {
 
 /**
  * Retrieve all memory threads associated with a resource.
+ * @param resourceId - Resource identifier
+ * @returns Promise resolving to array of threads
  */
 export async function getThreadsByResourceId(resourceId: string) {
   const id = resourceIdSchema.parse(resourceId);
@@ -165,11 +181,11 @@ export async function getThreadsByResourceId(resourceId: string) {
 
 /**
  * Perform a semantic search in a thread's messages.
- * @param threadId Thread identifier
- * @param vectorSearchString Query string for semantic search
- * @param topK Number of similar messages to retrieve
- * @param before Number of messages before each match
- * @param after Number of messages after each match
+ * @param threadId - Thread identifier
+ * @param vectorSearchString - Query string for semantic search
+ * @param topK - Number of similar messages to retrieve
+ * @param before - Number of messages before each match
+ * @param after - Number of messages after each match
  * @returns Promise resolving to { messages, uiMessages }
  */
 export async function searchMessages(
@@ -194,8 +210,8 @@ export async function searchMessages(
 
 /**
  * Retrieve UI-formatted messages for a thread.
- * @param threadId Thread identifier
- * @param last Number of recent messages
+ * @param threadId - Thread identifier
+ * @param last - Number of recent messages
  * @returns Promise resolving to array of UI-formatted messages
  */
 export async function getUIThreadMessages(threadId: string, last = 10): Promise<any[]> {
@@ -214,10 +230,10 @@ export async function getUIThreadMessages(threadId: string, last = 10): Promise<
 
 /**
  * Masks internal working_memory updates from a response textStream.
- * @param textStream Async iterable of response chunks including <working_memory> tags
- * @param onStart Optional callback when a working_memory update starts
- * @param onEnd Optional callback when a working_memory update ends
- * @param onMask Optional callback for the masked content
+ * @param textStream - Async iterable of response chunks including <working_memory> tags
+ * @param onStart - Optional callback when a working_memory update starts
+ * @param onEnd - Optional callback when a working_memory update ends
+ * @param onMask - Optional callback for the masked content
  * @returns Async iterable of chunks with working_memory tags removed
  */
 export function maskWorkingMemoryStream(
@@ -231,23 +247,29 @@ export function maskWorkingMemoryStream(
 
 /**
  * Generates a concise summary of the recent memory for a given thread using Google Gemini.
- * @param resourceId The resource ID owning the thread
- * @param threadId The thread identifier
- * @param historySize Number of recent messages to include in the summary generation
+ * @param resourceId - The resource ID owning the thread
+ * @param threadId - The thread identifier
+ * @param historySize - Number of recent messages to include in the summary generation
  * @returns The summary text
  */
 export async function generateMemorySummary(
   resourceId: string,
   threadId: string,
-  historySize?: number
+  historySize = 100
 ): Promise<string> {
   const params = summarySchema.parse({ resourceId, threadId, historySize });
   try {
     // Retrieve recent messages
-    const { messages } = await agentMemory.query({ resourceId: params.resourceId, threadId: params.threadId, selectBy: { last: params.historySize } });
+    const { messages } = await agentMemory.query({ 
+      resourceId: params.resourceId, 
+      threadId: params.threadId, 
+      selectBy: { last: params.historySize } 
+    });
+    
     // Build prompt from messages
     const content = messages.map(m => `${m.role}: ${m.content}`).join('\n');
     const prompt = `Please provide a concise summary of the following conversation messages:\n${content}`;
+    
     // Generate summary with Google Gemini model
     const model = google('gemini-2.0-flash-exp');
     const result = await model.doGenerate({
@@ -264,10 +286,12 @@ export async function generateMemorySummary(
         },
       ],
     });
+    
     // Extract summary text from first generation
     const summaryText = typeof result.text === 'string'
       ? result.text
       : (result as any)?.message?.content ?? '';
+    
     return summaryText;
   } catch (error: unknown) {
     logger.error(`generateMemorySummary failed: ${(error as Error).message}`);
@@ -275,4 +299,4 @@ export async function generateMemorySummary(
   }
 }
 
-// Generated on 2025-06-01 - Enhanced with input validation and logging
+// Generated on 2025-06-01 - Enhanced with shared storage export and improved TSDoc

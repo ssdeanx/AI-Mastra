@@ -4,41 +4,61 @@ import { masterAgent } from './agents/masterAgent';
 import { workerAgent } from './agents/workerAgent';
 import { Mastra } from '@mastra/core/mastra';
 import { PinoLogger } from '@mastra/loggers';
-//import { serve as inngestServe } from "@mastra/inngest";
 import { weatherWorkflow } from './workflows/weather-workflow';
+import { taskOrchestrationWorkflow } from './workflows/multi-agent-workflow';
+import { researchAnalysisWorkflow } from './workflows/research-analysis-workflow';
+import { contentCreationWorkflow } from './workflows/content-creation-workflow';
+import { dataProcessingWorkflow } from './workflows/data-processing-workflow';
+import { ragKnowledgeWorkflow } from './workflows/rag-knowledge-workflow';
+import { evaluationTestingWorkflow } from './workflows/evaluation-testing-workflow';
 import { weatherAgent } from './agents/weather-agent';
 import { mcpAgent } from './agents/mcpAgent';
-//import { inngest } from "./inngest";
+import { agentStorage, agentVector } from './agentMemory';
+import { 
+  createTelemetryConfig,
+  AISDKExporter
+} from './observability';
 
-import { LibSQLStore, LibSQLVector } from '@mastra/libsql';
-
+/**
+ * Main Mastra instance with integrated multi-agent workflows and observability
+ * 
+ * @remarks
+ * - Configured with 7 production-ready workflows for different AI use cases
+ * - Uses shared storage from agentMemory for consistency
+ * - Integrated LangSmith tracing for comprehensive observability
+ * - All agents use traced Google AI models for monitoring
+ * 
+ * @see {@link https://github.com/mastra-ai/mastra} - Mastra documentation
+ * 
+ * Generated on 2025-06-01
+ */
 export const mastra = new Mastra({
-  workflows: { weatherWorkflow },
+  workflows: { 
+    weatherWorkflow, 
+    taskOrchestrationWorkflow,
+    researchAnalysisWorkflow,
+    contentCreationWorkflow,
+    dataProcessingWorkflow,
+    ragKnowledgeWorkflow,
+    evaluationTestingWorkflow
+  },
   agents: { weatherAgent, mcpAgent, stockAgent, supervisorAgent, masterAgent, workerAgent },
-  // Conversational memory  // Persistent evals/telemetry storage
-  storage: new LibSQLStore({ url: process.env.DATABASE_URL || 'file:./mastra.db', authToken: process.env.DATABASE_AUTH_TOKEN || '' }),
+  storage: agentStorage,
+  vectors: { default: agentVector },
   logger: new PinoLogger({
     name: 'Mastra',
     level: 'info',
   }),
-//  server: {
-    // The server configuration is required to allow local docker container can connect to the mastra server
-//    host: "0.0.0.0",
-//    apiRoutes: [
-      // This API route is used to register the Mastra workflow (inngest function) on the inngest server
-//      {
-//        path: "/api/inngest",
-//        method: "ALL",
-//        createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
-        // The inngestServe function integrates Mastra workflows with Inngest by:
-        // 1. Creating Inngest functions for each workflow with unique IDs (workflow.${workflowId})
-        // 2. Setting up event handlers that:
-        //    - Generate unique run IDs for each workflow execution
-        //    - Create an InngestExecutionEngine to manage step execution
-        //    - Handle workflow state persistence and real-time updates
-        // 3. Establishing a publish-subscribe system for real-time monitoring
-        //    through the workflow:${workflowId}:${runId} channel
-//      },
-//    ]
-//  }
+  telemetry: createTelemetryConfig({
+    serviceName: "pr-warmhearted-jewellery-74",
+    enabled: true,
+    sampling: {
+      type: 'ratio',
+      probability: process.env.NODE_ENV === 'production' ? 0.1 : 1.0
+    },
+    export: {
+      type: "custom",
+      exporter: new AISDKExporter(),
+    }
+  }),
 });
