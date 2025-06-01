@@ -1,10 +1,10 @@
-import { google } from '@ai-sdk/google';
 import { Agent } from '@mastra/core/agent';
 import { mcp } from "../tools/mcp";
 import { agentMemory } from '../agentMemory';
 import { PinoLogger } from '@mastra/loggers';
 import { vectorQueryTool } from '../tools/vectorQueryTool';
 import { createTracedGoogleModel } from '../observability';
+import { createMastraGoogleProvider, GoogleGenerativeAIProviderOptions } from '../observability/googleProvider'
 const logger = new PinoLogger({
     name: 'Mastra',
     level: 'info',
@@ -30,9 +30,10 @@ export const supervisorAgent: Agent = new Agent({
 
       Use the mcp tool to interact with the Model Context Protocol.
 `,
-  model: createTracedGoogleModel('gemini-2.0-flash-exp', {
+  model: createTracedGoogleModel('gemini-2.5-flash-preview-05-20', {
     name: 'supervisor-agent-model',
-    tags: ['supervisor', 'mcp', 'production']
+    tags: ['agent', 'supervisor', 'MCP']
+    
   }),
   tools: {
     ...(await mcp.getTools()),

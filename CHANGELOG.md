@@ -2,6 +2,25 @@
 
 All notable changes to this project are documented in this file.
 
+## [v0.0.3] - 2025-06-01
+
+### Fixed
+
+- **Google Provider Configuration**
+  - Fixed `createMastraGoogleProvider` in `src/mastra/observability/googleProvider.ts` to properly support all Google AI provider options including `thinkingConfig` for Gemini 2.5+ models.
+  - Resolved ZodNull compatibility issues with advanced Gemini models by using clean `baseGoogle(modelId, options)` pattern.
+  - Removed unnecessary grounding configuration bloat that was causing model initialization errors.
+
+- **Agent Model Configuration**
+  - Fixed `masterAgent` and `supervisorAgent` to use proper model providers with thinking budget configuration.
+  - Ensured `createMastraGoogleProvider` supports `thinkingConfig: { thinkingBudget: 2048 }` for advanced reasoning models.
+
+### Changed
+
+- **Observability Tracing**
+  - Updated agents to use `createTracedGoogleModel` for proper LangSmith tracing integration.
+  - Maintained clean separation between Google provider creation and tracing wrapper functionality.
+
 ## [v0.0.2] - 2025-06-01
 
 ### Added

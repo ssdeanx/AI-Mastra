@@ -7,9 +7,10 @@ import type { CoreMessage, Telemetry } from '@mastra/core';
 import { maskStreamTags } from '@mastra/core/utils';
 import { MemoryProcessor } from '@mastra/core/memory';
 import { TokenLimiter } from '@mastra/memory/processors';
-import { RegisteredLogger, IMastraLogger } from '@mastra/core/logger';
+
 import { Tracer } from '@opentelemetry/api';
 import { google } from '@ai-sdk/google';
+import { embed } from "ai";
 
 const logger = new PinoLogger({ name: 'agentMemory', level: 'info' });
 
@@ -20,7 +21,7 @@ export const agentStorage = new LibSQLStore({
 });
 
 export const agentVector = new LibSQLVector({
-  connectionUrl: process.env.DATABASE_URL || 'file:./vector.db',
+  connectionUrl: 'file:./vector.db',
 });
 
 const createThreadSchema = z.object({ resourceId: z.string().nonempty(), threadId: z.string().optional(), title: z.string().optional(), metadata: z.record(z.unknown()).optional() });

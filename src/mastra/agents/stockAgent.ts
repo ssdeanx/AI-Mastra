@@ -1,4 +1,3 @@
-import { google } from '@ai-sdk/google';
 import { Agent } from '@mastra/core/agent';
 import { stockPriceTool } from '../tools/stock-tools';
 import { agentMemory } from '../agentMemory';

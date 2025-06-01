@@ -12,7 +12,7 @@ import { traceable } from "langsmith/traceable";
 import { wrapAISDKModel } from "langsmith/wrappers/vercel";
 import { AISDKExporter } from "langsmith/vercel";
 import { PinoLogger } from '@mastra/loggers';
-import { google } from '@ai-sdk/google';
+import { createMastraGoogleProvider } from './googleProvider';
 import { formatISO } from 'date-fns';
 
 /**
@@ -219,23 +219,24 @@ export const initializeObservability = () => {
 };
 
 /**
- * Creates a Google AI model with LangSmith tracing enabled
- * 
+ * Creates a Google AI model with LangSmith tracing enabled and Mastra search grounding config
+ *
  * @param modelId - Google AI model ID (e.g., 'gemini-2.0-flash-exp')
- * @param options - LangSmith tracing options
- * @returns Wrapped Google AI model with automatic tracing
+ * @param options - LangSmith tracing options and Google provider options
+ * @returns Wrapped Google AI model with automatic tracing and search grounding
  */
 export const createTracedGoogleModel = (
   modelId: string = 'gemini-2.0-flash-exp',
-  options?: { name?: string; tags?: string[] }
+  options?: { name?: string; tags?: string[]; googleOptions?: Record<string, any> }
 ) => {
-  const baseModel = google(modelId);
-  
+  // Use the enhanced provider with search grounding/dynamic retrieval
+  const baseModel = createMastraGoogleProvider(modelId, options?.googleOptions);
+
   if (!langsmithConfig.tracingEnabled) {
     observabilityLogger.debug('LangSmith tracing disabled, returning unwrapped model');
     return baseModel;
   }
-  
+
   return wrapAISDKModel(baseModel, {
     name: options?.name || `google-${modelId}`,
     tags: ['google-ai', 'ai-sdk', 'mastra', ...(options?.tags || [])],
@@ -247,7 +248,6 @@ export const createTracedGoogleModel = (
     }
   });
 };
-
 // Export everything needed
 export {
   traceable,

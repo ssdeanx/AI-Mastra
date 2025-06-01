@@ -1,10 +1,10 @@
-import { google } from '@ai-sdk/google';
 import { Agent } from '@mastra/core/agent';
 import { mcp } from "../tools/mcp";
 import { agentMemory } from '../agentMemory';
 import { PinoLogger } from '@mastra/loggers';
 import { vectorQueryTool } from '../tools/vectorQueryTool';
 import { createTracedGoogleModel } from '../observability';
+import { createMastraGoogleProvider } from '../observability/googleProvider';
 const logger = new PinoLogger({
     name: 'Mastra',
     level: 'info',
@@ -80,10 +80,9 @@ When responding:
 
 Use the mcp tool to interact with the Model Context Protocol.
 `,
-  model: createTracedGoogleModel('gemini-2.0-flash-exp', {
-    name: 'master-agent-model',
-    tags: ['master', 'mcp', 'coordination']
-  }),
+  model: createMastraGoogleProvider('gemini-2.5-flash-preview-05-20', {
+      thinkingConfig: { thinkingBudget: 2048 }
+    }),
   tools: {
     vectorQueryTool,
     ...(await mcp.getTools())
