@@ -41,6 +41,8 @@ import { ragAgent } from '../../agents/ragAgent';
 import { stockAgent } from '../../agents/stockAgent';
 import { weatherAgent } from '../../agents/weather-agent';
 import { workerAgent } from '../../agents/workerAgent';
+import { evaluationAgent } from '../../agents/evaluationAgent';
+import { dataManagerAgent } from '../../agents/dataManagerAgent';
 import { Step } from '@mastra/core';
 import { RuntimeContext } from '@mastra/core/runtime-context';
 import { EMITTER_SYMBOL } from '@mastra/core/workflows/_constants';
@@ -90,7 +92,9 @@ const agentRegistry = {
   ragAgent,
   stockAgent,
   weatherAgent,
-  workerAgent
+  workerAgent,
+  evaluationAgent,
+  dataManagerAgent,
 };
 
 
@@ -132,13 +136,20 @@ const executeTaskStep = createStep({
           throw new Error(`Agent ${agentName} not found`);
         }
         
-        const result = await agent.generate(task, { ...context });
+        const response = await agent.generate([{ role: 'user', content: task }], { ...context });
+        const agentOutput = response.text || 'No output generated';
         const executionTime = Date.now() - startTime;
-        const qualityScore = Math.random() * 40 + 60; // Simulate quality score 60-100
+        const qualityScore = await assessRealQuality({
+          agentName,
+          output: agentOutput,
+          task,
+          iteration,
+          executionTime
+        });
         
         agentResults.push({
           agentName,
-          output: result,
+          output: agentOutput,
           qualityScore,
           executionTime,
           success: true
@@ -614,13 +625,14 @@ export const intelligentCoordinationWorkflow = createWorkflow({
         if (!agent) {
           throw new Error(`Agent ${agentName} not found`);
         }
-          const result = await agent.generate([{ role: 'user', content: task }]);
+          const response = await agent.generate([{ role: 'user', content: task }]);
+        const agentOutput = response.text || 'No output generated';
         const executionTime = Date.now() - startTime;
         
         // Use real quality assessment for initial execution
         const qualityScore = await assessRealQuality({
           agentName,
-          output: result.text || 'No output generated',
+          output: agentOutput,
           task,
           iteration: 0, // Initial iteration
           executionTime
@@ -628,7 +640,7 @@ export const intelligentCoordinationWorkflow = createWorkflow({
         
         agentResults.push({
           agentName,
-          output: result.text,
+          output: agentOutput,
           qualityScore,
           executionTime,
           success: true
@@ -718,13 +730,14 @@ export const intelligentCoordinationWorkflow = createWorkflow({
         if (!agent) {
           throw new Error(`Agent ${agentName} not found`);
         }
-          const result = await agent.generate([{ role: 'user', content: task }]);
+          const response = await agent.generate([{ role: 'user', content: task }]);
+        const agentOutput = response.text || 'No output generated';
         const executionTime = Date.now() - startTime;
         
         // Use real quality assessment instead of simulation
         const qualityScore = await assessRealQuality({
           agentName,
-          output: result.text || 'No output generated',
+          output: agentOutput,
           task,
           iteration: currentIteration,
           executionTime
@@ -732,7 +745,7 @@ export const intelligentCoordinationWorkflow = createWorkflow({
         
         agentResults.push({
           agentName,
-          output: result.text,
+          output: agentOutput,
           qualityScore,
           executionTime,
           success: true

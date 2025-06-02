@@ -1,34 +1,49 @@
 import { Metric, type MetricResult } from "@mastra/core/eval";
-import { google } from '@ai-sdk/google';
+import { createTracedGoogleModel } from '../observability';
+// Initialize traced Google model for LLM-based evaluations
+const defaultModel = createTracedGoogleModel('gemini-2.0-flash-exp');
 import { ToxicityMetric } from "@mastra/evals/llm";
 import { PromptAlignmentMetric } from "@mastra/evals/llm";
 import { ContextualRecallMetric } from "@mastra/evals/llm";
 import { ContextRelevancyMetric } from "@mastra/evals/llm";
 import { ContextPrecisionMetric } from "@mastra/evals/llm";
+import { SummarizationMetric, FaithfulnessMetric, HallucinationMetric, AnswerRelevancyMetric, BiasMetric } from '@mastra/evals/llm';
+import { ContentSimilarityMetric, ToneConsistencyMetric } from '@mastra/evals/nlp';
 
 // Default evaluation context array
 const context1: string[] = ['Default evaluation context based on prior conversation or data.'];
 // Instructions for PromptAlignmentMetric
 const instructions1: string[] = ['You are a helpful assistant.'];
 
-// Instantiate metrics
-export const toxicityMetric = new ToxicityMetric(google('gemini-2.0-flash-exp'));
+// Instantiate LLM-based metrics
+export const toxicityMetric = new ToxicityMetric(defaultModel);
 
-export const promptAlignmentMetric = new PromptAlignmentMetric(google('gemini-2.0-flash-exp'), {
+export const promptAlignmentMetric = new PromptAlignmentMetric(defaultModel, {
   instructions: instructions1,
 });
 
-export const contextualRecallMetric = new ContextualRecallMetric(google('gemini-2.0-flash-exp'), {
+export const contextualRecallMetric = new ContextualRecallMetric(defaultModel, {
   context: context1,
 });
  
-export const contextRelevancyMetric = new ContextRelevancyMetric(google('gemini-2.0-flash-exp'), {
+export const contextRelevancyMetric = new ContextRelevancyMetric(defaultModel, {
   context: context1,
 });
 
-export const contextPrecisionMetric = new ContextPrecisionMetric(google('gemini-2.0-flash-exp'), {
+export const contextPrecisionMetric = new ContextPrecisionMetric(defaultModel, {
   context: context1,
 });
+
+// Additional LLM-based metrics
+export const summarizationMetric = new SummarizationMetric(defaultModel);
+export const faithfulnessMetric = new FaithfulnessMetric(defaultModel, { context: context1 });
+export const hallucinationMetric = new HallucinationMetric(defaultModel, { context: context1 });
+export const answerRelevancyMetric = new AnswerRelevancyMetric(defaultModel, {});
+export const biasMetric = new BiasMetric(defaultModel, {});
+
+// NLP-based metrics (non-LLM)
+export const contentSimilarityMetric = new ContentSimilarityMetric();
+export const toneConsistencyMetric = new ToneConsistencyMetric();
 
 // Word inclusion metric to check if specific words are present in the output
 interface WordInclusionResult extends MetricResult {
@@ -76,13 +91,31 @@ export class ModelInfoMetric extends Metric {
     this.modelId = modelId;
   }
   async measure(_input: string, _output: string): Promise<ModelInfoResult> {
-    // Always returns score 1 and the configured model identifier
-    return {
-      score: 1,
-      info: { model: this.modelId },
-    };
+    return { score: 1, info: { model: this.modelId } };
   }
 }
 
-// Export default model info metric
+// Instantiate custom metrics
+export const wordInclusionMetric = new WordInclusionMetric([]);
 export const modelInfoMetric = new ModelInfoMetric('gemini-2.0-flash-exp');
+
+// Export a collective object for easy import in agents
+export const evals = {
+  toxicityMetric,
+  promptAlignmentMetric,
+  contextualRecallMetric,
+  contextRelevancyMetric,
+  contextPrecisionMetric,
+  summarizationMetric,
+  faithfulnessMetric,
+  hallucinationMetric,
+  answerRelevancyMetric,
+  biasMetric,
+  contentSimilarityMetric,
+  toneConsistencyMetric,
+  wordInclusionMetric,
+  modelInfoMetric,
+};
+
+// Type for the eval suite
+export type Evals = typeof evals;

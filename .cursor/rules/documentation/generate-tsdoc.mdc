@@ -1,0 +1,36 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+---
+Rule Type: Auto Attached
+Globs: ["src/mastra/**/*.ts"]
+Description: "Provides a template and guidelines for generating comprehensive TSDoc comments for functions, classes, interfaces, and type aliases in the AI-Mastra project. Activates for all TypeScript files to ensure documentation standards are readily available."
+---
+
+# Generating TSDoc Comments for AI-Mastra
+
+Consistent and comprehensive TSDoc documentation is a requirement for the AI-Mastra project, as stated in the main `@file ssdeanx/ai-mastra/AI-Mastra-9c843c733026b19a01e114eec2aa377cf0ecb6d2/README.md` (see sections "API Documentation" and "Contributing"). This rule guides the AI in generating TSDoc that meets these standards whenever working with TypeScript files.
+
+When asked to generate or complete TSDoc for a TypeScript code element (function, class, method, interface, type alias), ensure the following structure and tags are used:
+
+## 1. Standard TSDoc Structure
+A TSDoc comment block should immediately precede the code element it documents.
+
+```typescript
+/**
+ * [Concise summary of the element's purpose and functionality.]
+ *
+ * [@remarks]
+ * [Optional: More detailed explanation, usage notes, important considerations, or rationale.]
+ *
+ * [@example]
+ * [Optional: A brief code example demonstrating usage.]
+ *
+ * [@param parameterName - Description of the parameter.]
+ * [@returns Description of the return value, including its type if complex.]
+ * [@throws {ErrorType} Description of conditions under which this error is thrown.]
+ * [@see {@link relatedElement} or URL for further information.]
+
+ */

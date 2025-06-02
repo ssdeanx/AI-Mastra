@@ -222,6 +222,32 @@ Provide detailed justification for each score.
     variables: ['output', 'expected', 'context', 'focus'],
     tags: ['evaluation', 'assessment', 'quality'],
     category: 'evaluation'
+  },
+  'evaluation-report-generator': {
+    id: 'evaluation-report-generator',
+    name: 'Agent Evaluation Report Generator',
+    description: 'Generates a comprehensive evaluation report for an AI agent.',
+    version: '1.0.0',
+    createdAt: '2025-06-02T00:00:00.000Z',
+    updatedAt: '2025-06-02T00:00:00.000Z',
+    template: `
+# Agent Evaluation Report for {agentName}
+
+## Summary of Evaluation
+{summary}
+
+## Detailed Results Overview
+{detailedResults}
+
+## Recommendations for Improvement
+{recommendations}
+
+---
+*Report generated on: {{DATE}}*
+    `.trim(),
+    variables: ['agentName', 'detailedResults', 'summary', 'recommendations'],
+    tags: ['evaluation', 'report', 'agent-performance'],
+    category: 'evaluation'
   }
 };
 

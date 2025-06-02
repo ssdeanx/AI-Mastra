@@ -283,3 +283,48 @@ All notable changes to this project are documented in this file.
 -
 
 *This changelog adheres to the [Keep a Changelog](https://keepachangelog.com/) convention and semantic versioning.*
+
+## [v0.0.6] - 2025-06-03
+
+### Added
+
+- **New Inngest Workflows** - Expanded the Inngest workflow suite for enhanced agent lifecycle management.
+  - **Agent Evaluation Workflow** (`src/mastra/workflows/inngest/agent-evaluation-workflow.ts`)
+    - Implemented a comprehensive workflow for evaluating AI agents using various metrics.
+    - Integrated with `evaluationAgent` for applying specific evaluation metrics (LLM-based and custom).
+    - Features planning, agent execution, metric application, and detailed report generation using `promptManager`.
+    - Saves evaluation results and provides recommendations for agent improvement.
+  - **Agent Deployment Workflow** (`src/mastra/workflows/inngest/agent-deployment-workflow.ts`)
+    - Developed a robust workflow for deploying trained and validated AI agents.
+    - Includes sophisticated deployment strategies (direct, canary, blue-green).
+    - Features automatic rollback on failure and integrates with post-deployment evaluation (`agent-evaluation-workflow`) and continuous monitoring (`agent-monitoring-workflow`).
+    - Enhanced logging and error handling for critical deployment operations.
+  - **Agent Monitoring Workflow** (`src/mastra/workflows/inngest/agent-monitoring-workflow.ts`)
+    - Created a continuous monitoring workflow for deployed AI agents.
+    - Tracks key performance indicators, detects anomalies based on defined thresholds.
+    - Triggers alerts and notifications for critical issues.
+    - Integrates with `evaluationAgent` for real-time metric application on live data.
+
+### Enhanced
+
+- **Intelligent Coordination Workflow** (`src/mastra/workflows/inngest/intelligent-coordination-workflow.ts`)
+  - Standardized agent interaction to consistently use array of messages format for `agent.generate` calls.
+  - Replaced simulated quality assessment with real `assessRealQuality` function for more accurate evaluation.
+  - Ensured schema consistency by adding `shouldContinue` property to `final-synthesis` step's input.
+- **Agent Deployment Workflow** (`src/mastra/workflows/inngest/agent-deployment-workflow.ts`)
+  - Improved `deploymentInputSchema` and `deploymentOutputSchema` to include `deploymentConfig`, `postDeploymentTestSuite`, and `startMonitoring` fields.
+  - Enhanced `deploymentPreparationStep` and `agentDeploymentStep` to utilize `deploymentConfig` for more realistic conceptual interactions.
+  - Refactored `postDeploymentVerificationStep` to trigger `agent-evaluation-workflow` and `agent-monitoring-workflow` conceptually.
+  - Updated notification emails to include evaluation and monitoring run IDs.
+- **Agent Monitoring Workflow** (`src/mastra/workflows/inngest/agent-monitoring-workflow.ts`)
+  - Ensured all agents are imported and accessible within the workflow via the `agentRegistry`.
+- **Prompt Management** (`src/mastra/observability/promptManager.ts`)
+  - Added new prompt template: `evaluation-report-generator` for comprehensive agent evaluation reports.
+
+### Fixed
+
+- **Intelligent Coordination Workflow** (`src/mastra/workflows/inngest/intelligent-coordination-workflow.ts`)
+  - Corrected `agent.generate` call formats and ensured `result.text` usage for agent outputs.
+  - Resolved schema validation issue for `final-synthesis` step.
+- **Agent Monitoring Workflow** (`src/mastra/workflows/inngest/agent-monitoring-workflow.ts`)
+  - Ensured all agents are correctly imported and registered.

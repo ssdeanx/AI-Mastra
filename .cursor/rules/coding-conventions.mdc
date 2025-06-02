@@ -1,0 +1,63 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+---
+Rule Type: Always
+Description: "Defines core coding conventions and standards for the AI-Mastra project, ensuring consistency and maintainability across the codebase. Covers TypeScript usage, documentation, validation, logging, error handling, and model definition."
+---
+
+# AI-Mastra Coding Conventions and Standards
+
+This document outlines the primary coding conventions and standards to be followed when developing within the AI-Mastra framework. Adherence to these guidelines is crucial for maintaining code quality, consistency, and ease of collaboration.
+
+## 1. TypeScript Usage
+The AI-Mastra project is built entirely in TypeScript and enforces strict type checking.
+
+* **Strict Mode:** The project's `tsconfig.json` is configured with `"strict": true`. All new code must adhere to strict TypeScript rules, avoiding `any` types where possible and ensuring all types are explicitly defined or correctly inferred.
+* **Module System:** The project uses ES2022 modules, as specified in `tsconfig.json`. Use `import` and `export` statements accordingly.
+* **Readability:** Prioritize clear and readable type definitions. For complex types or interfaces, consider defining them separately and importing them where needed.
+
+## 2. Documentation (TSDoc)
+Comprehensive documentation is essential for understanding and maintaining the AI-Mastra framework.
+
+* **TSDoc for All Public APIs:** All exported functions, classes, methods, interfaces, and type aliases must include TSDoc comments.
+* **TSDoc Content:** Documentation should clearly explain the purpose of the code element, its parameters (`@param`), return values (`@returns`), any thrown errors (`@throws`), and provide usage examples or remarks (`@remarks`, `@example`) where beneficial. Refer to the "API Documentation" section in the project's main `@file README.md` for guidance.
+
+## 3. Schema Validation (Zod)
+Input and output validation is critical for ensuring data integrity and robust error handling, especially at the boundaries of tools and workflows.
+
+* **Use Zod for Schemas:** Zod should be used to define schemas for all data structures that cross application boundaries, such as tool inputs/outputs and workflow step inputs/outputs.
+* **Descriptive Schemas:** Schemas should be as descriptive as possible, utilizing Zod's features like `.describe()` to add human-readable explanations for fields.
+* **Example:** For workflow step definitions, refer to `inputSchema` and `outputSchema` in files like `@file src/mastra/workflows/multi-agent-workflow.ts`.
+
+## 4. Logging
+Consistent and structured logging is vital for debugging and monitoring the system.
+
+* **PinoLogger:** The project uses `PinoLogger` from `@mastra/loggers` for structured logging.
+* **Contextual Logging:** Logs should include relevant context, such as agent name, operation, or workflow ID, to aid in tracing and debugging.
+* **Log Levels:** Use appropriate log levels (e.g., `info`, `warn`, `error`) based on the severity and nature of the logged event.
+* **Example:** The main Mastra instance is initialized with a PinoLogger in `@file src/mastra/index.ts`. Agents and workflows should use the logger provided by the Mastra instance (e.g., `mastra.getLogger()` within workflow steps).
+
+## 5. Error Handling
+Robust error handling is a key aspect of enterprise-grade software.
+
+* **Comprehensive `try/catch` Blocks:** All asynchronous operations and operations that might fail (e.g., API calls, file system access, tool execution) must be wrapped in `try/catch` blocks.
+* **Specific Error Types:** Where possible, catch specific error types rather than generic `Error` to allow for more nuanced error handling.
+* **Logging Errors:** Caught errors should be logged with sufficient context using the project's logger.
+* **Error Propagation:** Decide on a consistent strategy for error propagation (e.g., re-throwing custom errors, returning error objects). The `ErrorTracker` from `@file src/mastra/observability/index.ts` is available for more advanced error tracking.
+
+## 6. AI Model Definitions
+Consistency in defining and tracing AI model interactions is important for observability.
+
+* **Use `createTracedGoogleModel`:** When defining Google AI models for use in agents or other components, always use the `createTracedGoogleModel` utility from `@file src/mastra/observability/googleProvider.ts` (exported via `@file src/mastra/observability/index.ts`).
+* **Configuration:** Provide meaningful names and tags when configuring the traced model to improve traceability in LangSmith.
+    * Example: `createTracedGoogleModel('gemini-2.5-flash-preview-05-20', { name: 'master-agent-model', tags: ['agent', 'master'] })`.
+
+## 7. Code Formatting and Linting
+* While not explicitly detailed in the provided files beyond TypeScript's strictness, assume that standard code formatting tools (like Prettier, often paired with ESLint) are or should be used. Ensure code is consistently formatted before committing.
+* The `package.json` may contain `lint` and `type-check` scripts; these should be used regularly.
+
+
+By adhering to these conventions, we can ensure that the AI-Mastra codebase remains robust, maintainable, and easy for all contributors (human and AI) to navigate and understand.

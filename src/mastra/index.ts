@@ -1,3 +1,4 @@
+import { agentEvaluationWorkflow } from './workflows/inngest/agent-evaluation-workflow';
 import { Inngest } from 'inngest';
 import { stockAgent } from './agents/stockAgent';
 import { supervisorAgent } from './agents/supervisorAgent';
@@ -14,9 +15,13 @@ import { ragKnowledgeWorkflow } from './workflows/rag-knowledge-workflow';
 import { evaluationTestingWorkflow } from './workflows/evaluation-testing-workflow';
 import { intelligentCoordinationWorkflow } from './workflows/inngest/intelligent-coordination-workflow';
 import { agentTrainingWorkflow } from './workflows/inngest/agent-training-workflow';
+import { agentDeploymentWorkflow } from './workflows/inngest/agent-deployment-workflow';
+import { agentMonitoringWorkflow } from './workflows/inngest/agent-monitoring-workflow';
 import { weatherAgent } from './agents/weather-agent';
 import { mcpAgent } from './agents/mcpAgent';
 import { ragAgent } from './agents/ragAgent';
+import { evaluationAgent } from './agents/evaluationAgent';
+import { dataManagerAgent } from './agents/dataManagerAgent';
 import { agentStorage, agentVector } from './agentMemory';
 // Import Inngest for workflow management
 import { inngest } from './inngest/index';
@@ -60,9 +65,12 @@ export const mastra = new Mastra({
     ragKnowledgeWorkflow,
     evaluationTestingWorkflow,
     intelligentCoordinationWorkflow,
-    agentTrainingWorkflow
+    agentTrainingWorkflow,
+    agentDeploymentWorkflow,
+    agentMonitoringWorkflow,
+    agentEvaluationWorkflow
   },
-  agents: { weatherAgent, mcpAgent, stockAgent, supervisorAgent, masterAgent, workerAgent, ragAgent },
+  agents: { weatherAgent, mcpAgent, stockAgent, supervisorAgent, masterAgent, workerAgent, ragAgent, evaluationAgent, dataManagerAgent },
   networks: {
     researchNetwork: researchNetwork(),
     dataProcessingNetwork: dataProcessingNetwork(),
