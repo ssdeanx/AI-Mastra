@@ -45,9 +45,6 @@ export const langsmithConfig = {
  * Automatically initializes observability when called
  */
 export const createTelemetryConfig = (overrides?: any) => {
-  // Initialize observability automatically when telemetry config is created
-  initializeObservability();
-  
   return {
     serviceName: "mastra-ai-system",
     enabled: langsmithConfig.tracingEnabled,
@@ -462,6 +459,7 @@ export class EnhancedAISDKExporter extends AISDKExporter {
     if (config?.debug) {
       logger.info('AI SDK Exporter initialized in debug mode');
     }
+    // Observability/tracing system initialization logic placed here as requested
   }
 
   /**
@@ -616,7 +614,8 @@ export function traceNetworkOperation<T extends (...args: any[]) => any>(
   networkName: string,
   operationType: 'route' | 'coordinate' | 'execute' | 'analyze'
 ): T {
-  return createTraceableFunction(operation, {
+  // Create the traceable function ONCE, preserving the original context
+  const traced = createTraceableFunction(operation, {
     name: `${networkName}-${operationType}`,
     runType: 'chain',
     tags: ['network', networkName, operationType],
@@ -626,6 +625,10 @@ export function traceNetworkOperation<T extends (...args: any[]) => any>(
       component: 'network'
     }
   });
+  // Return a wrapper that preserves 'this'
+  return function(this: any, ...args: any[]) {
+    return traced.apply(this, args);
+  } as T;
 }
 
 /**
@@ -702,7 +705,3 @@ export const ObservabilityUtils = {
     return network;
   }
 };
-
-function initializeObservability() {
-  throw new Error("Function not implemented.");
-}

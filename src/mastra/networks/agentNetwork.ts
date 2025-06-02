@@ -1,5 +1,5 @@
 import { AgentNetwork } from '@mastra/core/network';
-import { createTracedGoogleModel, createTraceableAgent } from '../observability';
+import { createTracedGoogleModel } from '../observability';
 
 // Import existing agents
 import { masterAgent } from '../agents/masterAgent';
@@ -18,174 +18,159 @@ const logger = new PinoLogger({ name: 'agent-network', level: 'info' });
  * Research & Analysis Network
  * Coordinates specialized agents for comprehensive research tasks
  */
-export const researchNetwork = createTraceableAgent(
-  'research-network',
-  () => new AgentNetwork({
-    name: 'Research Network',
-    instructions: `
-      You are the coordinator for a research network with specialized agents.
-      
-      Available agents:
-      - supervisorAgent: Handles MCP operations, file management, and general coordination
-      - ragAgent: Performs semantic search and knowledge retrieval from documents
-      - stockAgent: Provides financial data, market analysis, and stock information
-      - weatherAgent: Provides weather data and meteorological analysis
-      - mcpAgent: Specialized for Model Context Protocol interactions and tool usage
-      
-      Route tasks to the most appropriate agent based on:
-      - Research topics requiring document analysis → ragAgent
-      - Financial or market research → stockAgent  
-      - Weather-related queries → weatherAgent
-      - File operations or MCP tool usage → supervisorAgent or mcpAgent
-      - General coordination or multi-step tasks → supervisorAgent
-      
-      Always provide clear context about why you're routing to a specific agent.
-    `,
-    model: createTracedGoogleModel('gemini-2.0-flash-exp', {
-      name: 'research-network-router',
-      tags: ['network', 'research', 'coordination']
-    }),
-    agents: [supervisorAgent, ragAgent, stockAgent, weatherAgent, mcpAgent]
-  })
-);
+export const researchNetwork = () => new AgentNetwork({
+  name: 'Research Network',
+  instructions: `
+    You are the coordinator for a research network with specialized agents.
+    
+    Available agents:
+    - supervisorAgent: Handles MCP operations, file management, and general coordination
+    - ragAgent: Performs semantic search and knowledge retrieval from documents
+    - stockAgent: Provides financial data, market analysis, and stock information
+    - weatherAgent: Provides weather data and meteorological analysis
+    - mcpAgent: Specialized for Model Context Protocol interactions and tool usage
+    
+    Route tasks to the most appropriate agent based on:
+    - Research topics requiring document analysis → ragAgent
+    - Financial or market research → stockAgent  
+    - Weather-related queries → weatherAgent
+    - File operations or MCP tool usage → supervisorAgent or mcpAgent
+    - General coordination or multi-step tasks → supervisorAgent
+    
+    Always provide clear context about why you're routing to a specific agent.
+  `,
+  model: createTracedGoogleModel('gemini-2.0-flash-exp', {
+    name: 'research-network-router',
+    tags: ['network', 'research', 'coordination']
+  }),
+  agents: [supervisorAgent, ragAgent, stockAgent, weatherAgent, mcpAgent]
+});
 
 /**
  * Data Processing Network
  * Specializes in data analysis, transformation, and insights
  */
-export const dataProcessingNetwork = createTraceableAgent(
-  'data-processing-network',
-  () => new AgentNetwork({
-    name: 'Data Processing Network',
-    instructions: `
-      You coordinate data processing tasks across specialized agents.
-      
-      Available agents:
-      - ragAgent: Document analysis, chunking, and semantic processing
-      - stockAgent: Financial data processing and market analysis
-      - supervisorAgent: File operations and general data coordination
-      - workerAgent: Task execution and processing workflows
-      
-      Route tasks based on data type:
-      - Document processing, chunking, embeddings → ragAgent
-      - Financial data, market metrics → stockAgent
-      - File I/O, data transformation → supervisorAgent
-      - Task execution, workflows → workerAgent
-      
-      Focus on efficient data flow and processing pipelines.
-    `,
-    model: createTracedGoogleModel('gemini-2.0-flash-exp', {
-      name: 'data-processing-router',
-      tags: ['network', 'data-processing', 'analysis']
-    }),
-    agents: [ragAgent, stockAgent, supervisorAgent, workerAgent]
-  })
-);
+export const dataProcessingNetwork = () => new AgentNetwork({
+  name: 'Data Processing Network',
+  instructions: `
+    You coordinate data processing tasks across specialized agents.
+    
+    Available agents:
+    - ragAgent: Document analysis, chunking, and semantic processing
+    - stockAgent: Financial data processing and market analysis
+    - supervisorAgent: File operations and general data coordination
+    - workerAgent: Task execution and processing workflows
+    
+    Route tasks based on data type:
+    - Document processing, chunking, embeddings → ragAgent
+    - Financial data, market metrics → stockAgent
+    - File I/O, data transformation → supervisorAgent
+    - Task execution, workflows → workerAgent
+    
+    Focus on efficient data flow and processing pipelines.
+  `,
+  model: createTracedGoogleModel('gemini-2.0-flash-exp', {
+    name: 'data-processing-router',
+    tags: ['network', 'data-processing', 'analysis']
+  }),
+  agents: [ragAgent, stockAgent, supervisorAgent, workerAgent]
+});
 
 /**
  * Content Creation Network
  * Coordinates agents for comprehensive content generation and analysis
  */
-export const contentCreationNetwork = createTraceableAgent(
-  'content-creation-network',
-  () => new AgentNetwork({
-    name: 'Content Creation Network',
-    instructions: `
-      You coordinate content creation and enhancement tasks.
-      
-      Available agents:
-      - masterAgent: High-level content strategy and comprehensive analysis
-      - ragAgent: Research and knowledge synthesis from documents
-      - supervisorAgent: Content organization and file management
-      - stockAgent: Financial content and market analysis
-      - weatherAgent: Weather-related content and meteorological data
-      
-      Route based on content needs:
-      - Strategic content planning → masterAgent
-      - Research-backed content → ragAgent
-      - Financial/market content → stockAgent
-      - Weather/climate content → weatherAgent
-      - Content organization → supervisorAgent
-      
-      Ensure high-quality, well-researched content output.
-    `,
-    model: createTracedGoogleModel('gemini-2.0-flash-exp', {
-      name: 'content-creation-router',
-      tags: ['network', 'content', 'creation']
-    }),
-    agents: [masterAgent, ragAgent, supervisorAgent, stockAgent, weatherAgent]
-  })
-);
+export const contentCreationNetwork = () => new AgentNetwork({
+  name: 'Content Creation Network',
+  instructions: `
+    You coordinate content creation and enhancement tasks.
+    
+    Available agents:
+    - masterAgent: High-level content strategy and comprehensive analysis
+    - ragAgent: Research and knowledge synthesis from documents
+    - supervisorAgent: Content organization and file management
+    - stockAgent: Financial content and market analysis
+    - weatherAgent: Weather-related content and meteorological data
+    
+    Route based on content needs:
+    - Strategic content planning → masterAgent
+    - Research-backed content → ragAgent
+    - Financial/market content → stockAgent
+    - Weather/climate content → weatherAgent
+    - Content organization → supervisorAgent
+    
+    Ensure high-quality, well-researched content output.
+  `,
+  model: createTracedGoogleModel('gemini-2.0-flash-exp', {
+    name: 'content-creation-router',
+    tags: ['network', 'content', 'creation']
+  }),
+  agents: [masterAgent, ragAgent, supervisorAgent, stockAgent, weatherAgent]
+});
 
 /**
  * Technical Operations Network
  * Handles technical tasks, tool usage, and system operations
  */
-export const technicalOpsNetwork = createTraceableAgent(
-  'technical-ops-network',
-  () => new AgentNetwork({
-    name: 'Technical Operations Network',
-    instructions: `
-      You coordinate technical operations and tool usage across agents.
-      
-      Available agents:
-      - mcpAgent: Model Context Protocol operations and tool interactions
-      - supervisorAgent: General technical coordination and file operations  
-      - workerAgent: Task execution and operational workflows
-      - ragAgent: Technical document analysis and knowledge retrieval
-      
-      Route based on technical requirements:
-      - MCP tool operations → mcpAgent
-      - File system operations → supervisorAgent
-      - Task automation → workerAgent
-      - Technical documentation → ragAgent
-      
-      Focus on efficient tool usage and technical problem solving.
-    `,
-    model: createTracedGoogleModel('gemini-2.0-flash-exp', {
-      name: 'technical-ops-router', 
-      tags: ['network', 'technical', 'operations']
-    }),
-    agents: [mcpAgent, supervisorAgent, workerAgent, ragAgent]
-  })
-);
+export const technicalOpsNetwork = () => new AgentNetwork({
+  name: 'Technical Operations Network',
+  instructions: `
+    You coordinate technical operations and tool usage across agents.
+    
+    Available agents:
+    - mcpAgent: Model Context Protocol operations and tool interactions
+    - supervisorAgent: General technical coordination and file operations  
+    - workerAgent: Task execution and operational workflows
+    - ragAgent: Technical document analysis and knowledge retrieval
+    
+    Route based on technical requirements:
+    - MCP tool operations → mcpAgent
+    - File system operations → supervisorAgent
+    - Task automation → workerAgent
+    - Technical documentation → ragAgent
+    
+    Focus on efficient tool usage and technical problem solving.
+  `,
+  model: createTracedGoogleModel('gemini-2.0-flash-exp', {
+    name: 'technical-ops-router', 
+    tags: ['network', 'technical', 'operations']
+  }),
+  agents: [mcpAgent, supervisorAgent, workerAgent, ragAgent]
+});
 
 /**
  * Comprehensive Multi-Agent Network
  * Uses all available agents for complex, multi-domain tasks
  */
-export const comprehensiveNetwork = createTraceableAgent(
-  'comprehensive-network',
-  () => new AgentNetwork({
-    name: 'Comprehensive Network',
-    instructions: `
-      You have access to all specialized agents for comprehensive task handling.
-      
-      Available agents and their expertise:
-      - masterAgent: Strategic oversight, complex analysis, high-level coordination
-      - supervisorAgent: MCP operations, file management, general coordination
-      - ragAgent: Document analysis, semantic search, knowledge synthesis
-      - stockAgent: Financial data, market analysis, investment insights
-      - weatherAgent: Weather data, meteorological analysis, climate information
-      - mcpAgent: Model Context Protocol tools, specialized integrations
-      - workerAgent: Task execution, operational workflows, processing tasks
-      
-      Routing strategy:
-      1. Analyze the task complexity and domain requirements
-      2. For multi-domain tasks, coordinate multiple agents sequentially or in parallel
-      3. Use masterAgent for strategic oversight of complex workflows
-      4. Route domain-specific subtasks to specialized agents
-      5. Use supervisorAgent for coordination and file operations
-      
-      Always explain your routing decisions and coordinate agent interactions effectively.
-    `,
-    model: createTracedGoogleModel('gemini-2.0-flash-exp', {
-      name: 'comprehensive-router',
-      tags: ['network', 'comprehensive', 'multi-agent']
-    }),
-    agents: [masterAgent, supervisorAgent, ragAgent, stockAgent, weatherAgent, mcpAgent, workerAgent]
-  })
-);
+export const comprehensiveNetwork = () => new AgentNetwork({
+  name: 'Comprehensive Network',
+  instructions: `
+    You have access to all specialized agents for comprehensive task handling.
+    
+    Available agents and their expertise:
+    - masterAgent: Strategic oversight, complex analysis, high-level coordination
+    - supervisorAgent: MCP operations, file management, general coordination
+    - ragAgent: Document analysis, semantic search, knowledge synthesis
+    - stockAgent: Financial data, market analysis, investment insights
+    - weatherAgent: Weather data, meteorological analysis, climate information
+    - mcpAgent: Model Context Protocol tools, specialized integrations
+    - workerAgent: Task execution, operational workflows, processing tasks
+    
+    Routing strategy:
+    1. Analyze the task complexity and domain requirements
+    2. For multi-domain tasks, coordinate multiple agents sequentially or in parallel
+    3. Use masterAgent for strategic oversight of complex workflows
+    4. Route domain-specific subtasks to specialized agents
+    5. Use supervisorAgent for coordination and file operations
+    
+    Always explain your routing decisions and coordinate agent interactions effectively.
+  `,
+  model: createTracedGoogleModel('gemini-2.0-flash-exp', {
+    name: 'comprehensive-router',
+    tags: ['network', 'comprehensive', 'multi-agent']
+  }),
+  agents: [masterAgent, supervisorAgent, ragAgent, stockAgent, weatherAgent, mcpAgent, workerAgent]
+});
 
 /**
  * Network Analytics and Monitoring

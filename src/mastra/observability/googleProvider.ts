@@ -7,57 +7,53 @@
  *
  * @see https://ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai
  */
-import { google as baseGoogle, GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
+import { google as baseGoogle, GoogleGenerativeAIProviderSettings, GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 
 /**
  * Export a base Google model with search grounding and dynamic retrieval enabled (default for most agents)
  */
 export const baseGoogleModel = (modelId = 'gemini-2.0-flash-exp') => baseGoogle(modelId, {
-  structuredOutputs: true,
-  cachedContent: '{cachedContent}',
-  useSearchGrounding: true,
-  dynamicRetrievalConfig: {
-    mode: 'MODE_DYNAMIC',
-    dynamicThreshold: 0.8,
-  },
 });
 
 /**
- * Export createMastraGoogleProvider for advanced configuration with all Google provider options
- * Supports thinking config, safety settings, generation config, and all other Google AI options
- * 
- * @param modelId - Google AI model ID (e.g., 'gemini-2.5-flash-preview-05-20')
- * @param options - All Google AI provider options including thinkingConfig, safetySettings, etc.
+ * Create Google provider for Gemini 2.5+ models with thinking capabilities
  */
-export function createMastraGoogleProvider(
-  modelId = 'gemini-2.5-flash-preview-05-20',
+export function createGemini25Provider(
+  modelId: string = 'gemini-2.5-flash-preview-05-20',
   options: Partial<GoogleGenerativeAIProviderOptions> = {}
 ) {
-  // Default thinking budget for Gemini 2.5+ models
-  const defaultOptions = {
-    thinkingConfig: { thinkingBudget: 2048 },
-    structuredOutputs: true,
-    cachedContent: '{cachedContent}',
-    useSearchGrounding: true,
-    dynamicRetrievalConfig: {
-      mode: 'MODE_DYNAMIC' as const,
-      dynamicThreshold: 0.8,
-    },
+  // 2.5+ models require a different approach - pass options directly without merging with base settings
+  const defaultOptions: GoogleGenerativeAIProviderOptions = {
   };
 
-  // Merge default options with provided options
-  const mergedOptions = {
+  const mergedOptions: GoogleGenerativeAIProviderOptions = {
     ...defaultOptions,
     ...options,
-    // Ensure thinkingConfig is properly merged
-    thinkingConfig: options.thinkingConfig || defaultOptions.thinkingConfig
+    thinkingConfig: {
+      ...defaultOptions.thinkingConfig,
+      ...(options.thinkingConfig || {})
+    }
   };
-
-  return baseGoogle(modelId, mergedOptions);
+  
+  // Use baseGoogle without any additional settings for 2.5+ models
+  return baseGoogle(modelId);
 }
-export type { GoogleGenerativeAIProviderOptions };
 
+/**
+ * Main function - auto-detects model version and uses appropriate provider
+ */
+export function createMastraGoogleProvider(
+  modelId: string = 'gemini-2.0-flash-exp',
+  options: any = {}
+) {
+  if (modelId.startsWith('gemini-2.5')) {
+    return createGemini25Provider(modelId, options);
+  } else {
+    return baseGoogleModel(modelId);
+  }
+}
 
+export type { GoogleGenerativeAIProviderOptions, GoogleGenerativeAIProviderSettings };
 /**
  * Usage examples:
  * 

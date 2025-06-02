@@ -78,64 +78,64 @@ export const mcpStdio = new MCPClient({
  * Secondary MCP Client for SSE-based Smithery servers
  * Only initialized if SMITHERY_API is available
  */
-export const mcpSmithery = smitheryApi ? new MCPClient({
-  id: 'smithery-sse-servers',
-  timeout: 60000,
-  servers: {
-    winterm: {
-      url: new URL(`https://api.smithery.ai/servers/@capecoma/winterm-mcp/sse`),
-      requestInit: {
-        headers: {
-          'Authorization': `Bearer ${smitheryApi}`,
-          'Content-Type': 'application/json',
-        },
-      },
+//export const mcpSmithery = smitheryApi ? new MCPClient({
+//  id: 'smithery-sse-servers',
+//  timeout: 60000,
+//  servers: {
+//    winterm: {
+//      url: new URL(`https://server.smithery.ai/@capecoma/winterm-mcp/mcp?api_key=${smitheryApi}`),
+//      requestInit: {
+//        headers: {
+//          'Authorization': `Bearer ${smitheryApi}`,
+//          'Content-Type': 'application/json',
+//        },
+//      },
+//      // Required for SSE connections with custom headers (bug workaround)
+//      eventSourceInit: {
+//        fetch(input: Request | URL | string, init?: RequestInit) {
+//          const headers = new Headers(init?.headers || {});
+//          headers.set('Authorization', `Bearer ${smitheryApi}`);
+//          headers.set('Content-Type', 'application/json');
+//          return fetch(input, {
+//            ...init,
+//            headers,
+//          });
+//        },
+//      },
+//      timeout: 30000,/
+//      enableServerLogs: true,
+//      logger: (logMessage) => {
+//        logger.info(`[MCP:winterm] ${logMessage.message}`, { level: logMessage.level });
+//      }
+//    },
+//    duckduckgo: {
+//      url: new URL(`https://server.smithery.ai/@nickclyde/duckduckgo-mcp-server/mcp?api_key=${smitheryApi}`),
+//      requestInit: {
+//        headers: {
+//          'Authorization': `Bearer ${smitheryApi}`,
+//          'Content-Type': 'application/json',
+//        },
+//      },
       // Required for SSE connections with custom headers (bug workaround)
-      eventSourceInit: {
-        fetch(input: Request | URL | string, init?: RequestInit) {
-          const headers = new Headers(init?.headers || {});
-          headers.set('Authorization', `Bearer ${smitheryApi}`);
-          headers.set('Content-Type', 'application/json');
-          return fetch(input, {
-            ...init,
-            headers,
-          });
-        },
-      },
-      timeout: 30000,
-      enableServerLogs: true,
-      logger: (logMessage) => {
-        logger.info(`[MCP:winterm] ${logMessage.message}`, { level: logMessage.level });
-      }
-    },
-    duckduckgo: {
-      url: new URL(`https://api.smithery.ai/servers/@nickclyde/duckduckgo-mcp-server/sse`),
-      requestInit: {
-        headers: {
-          'Authorization': `Bearer ${smitheryApi}`,
-          'Content-Type': 'application/json',
-        },
-      },
-      // Required for SSE connections with custom headers (bug workaround)
-      eventSourceInit: {
-        fetch(input: Request | URL | string, init?: RequestInit) {
-          const headers = new Headers(init?.headers || {});
-          headers.set('Authorization', `Bearer ${smitheryApi}`);
-          headers.set('Content-Type', 'application/json');
-          return fetch(input, {
-            ...init,
-            headers,
-          });
-        },
-      },
-      timeout: 30000,
-      enableServerLogs: true,
-      logger: (logMessage) => {
-        logger.info(`[MCP:duckduckgo] ${logMessage.message}`, { level: logMessage.level });
-      }
-    }
-  },
-}) : null;
+//      eventSourceInit: {
+///        fetch(input: Request | URL | string, init?: RequestInit) {
+//          const headers = new Headers(init?.headers || {});
+//          headers.set('Authorization', `Bearer ${smitheryApi}`);
+//          headers.set('Content-Type', 'application/json');
+//          return fetch(input, {
+//            ...init,
+//            headers,
+//          });
+//        },
+//      },
+//      timeout: 30000,
+//      enableServerLogs: true,
+//      logger: (logMessage) => {
+//        logger.info(`[MCP:duckduckgo] ${logMessage.message}`, { level: logMessage.level });
+//      }
+//    }
+//  },
+//}) : null;
 
 /**
  * Main MCP interface - routes operations to appropriate client (Stdio or Smithery)
@@ -154,14 +154,14 @@ export const mcp = {  /**
       logger.error('Failed to get Stdio MCP tools', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
     
-    if (mcpSmithery) {
-      try {
-        const smitheryTools = await mcpSmithery.getTools();
-        Object.assign(allTools, smitheryTools);
-      } catch (error) {
-        logger.error('Failed to get Smithery MCP tools', { error: error instanceof Error ? error.message : 'Unknown error' });
-      }
-    }
+//    if (mcpSmithery) {
+//      try {
+//        const smitheryTools = await mcpSmithery.getTools();
+//        Object.assign(allTools, smitheryTools);
+//      } catch (error) {
+//        logger.error('Failed to get Smithery MCP tools', { error: error instanceof Error ? error.message : 'Unknown error' });
+//      }
+//    }
     
     return allTools;
   },
@@ -179,14 +179,14 @@ export const mcp = {  /**
       logger.error('Failed to get Stdio MCP tools', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
     
-    if (mcpSmithery) {
-      try {
-        const smitheryTools = await mcpSmithery.getTools();
-        tools.push(...Object.values(smitheryTools));
-      } catch (error) {
-        logger.error('Failed to get Smithery MCP tools', { error: error instanceof Error ? error.message : 'Unknown error' });
-      }
-    }
+//    if (mcpSmithery) {
+//      try {
+//        const smitheryTools = await mcpSmithery.getTools();
+//        tools.push(...Object.values(smitheryTools));
+//      } catch (error) {
+//        logger.error('Failed to get Smithery MCP tools', { error: error instanceof Error ? error.message : 'Unknown error' });
+//      }
+//    }
     
     return tools;
   },
@@ -204,14 +204,14 @@ export const mcp = {  /**
       logger.error('Failed to get Stdio MCP toolsets', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
     
-    if (mcpSmithery) {
-      try {
-        const smitheryToolsets = await mcpSmithery.getToolsets();
-        Object.assign(toolsets, smitheryToolsets);
-      } catch (error) {
-        logger.error('Failed to get Smithery MCP toolsets', { error: error instanceof Error ? error.message : 'Unknown error' });
-      }
-    }
+//    if (mcpSmithery) {
+//      try {
+//        const smitheryToolsets = await mcpSmithery.getToolsets();
+//        Object.assign(toolsets, smitheryToolsets);
+//     } catch (error) {
+//        logger.error('Failed to get Smithery MCP toolsets', { error: error instanceof Error ? error.message : 'Unknown error' });
+//      }
+//    }
     
     return toolsets;
   },
@@ -258,13 +258,13 @@ export const mcp = {  /**
       logger.error('Error disconnecting Stdio MCP client', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
     
-    if (mcpSmithery) {
-      try {
-        promises.push(mcpSmithery.disconnect());
-      } catch (error) {
-        logger.error('Error disconnecting Smithery MCP client', { error: error instanceof Error ? error.message : 'Unknown error' });
-      }
-    }
+//     if (mcpSmithery) {
+//      try {
+//        promises.push(mcpSmithery.disconnect());
+//      } catch (error) {
+//        logger.error('Error disconnecting Smithery MCP client', { error: error instanceof Error ? error.message : 'Unknown error' });
+//      }
+//    }
     
     await Promise.allSettled(promises);
     logger.info('All MCP clients disconnected');
@@ -275,12 +275,10 @@ export const mcp = {  /**
    */
   getClientForServer(server: string) {
     const stdioServers = ['filesystem', 'jsSandbox', 'docker'];
-    const smitheryServers = ['winterm', 'duckduckgo'];
+    
     
     if (stdioServers.includes(server)) {
       return mcpStdio;
-    } else if (smitheryServers.includes(server) && mcpSmithery) {
-      return mcpSmithery;
     }
     return null;
   },
@@ -299,14 +297,14 @@ export const mcp = {  /**
         logger.error('Failed to list Stdio MCP resources', { error: error instanceof Error ? error.message : 'Unknown error' });
       }
       
-      if (mcpSmithery) {
-        try {
-          const smitheryResources = await mcpSmithery.resources.list();
-          Object.assign(resources, smitheryResources);
-        } catch (error) {
-          logger.error('Failed to list Smithery MCP resources', { error: error instanceof Error ? error.message : 'Unknown error' });
-        }
-      }
+//      if (mcpSmithery) {
+//        try {
+//          const smitheryResources = await mcpSmithery.resources.list();
+//          Object.assign(resources, smitheryResources);
+//        } catch (error) {
+//          logger.error('Failed to list Smithery MCP resources', { error: error instanceof Error ? error.message : 'Unknown error' });
+//        }
+//      }
       
       return resources;
     },
@@ -321,14 +319,14 @@ export const mcp = {  /**
         logger.error('Failed to get Stdio MCP resource templates', { error: error instanceof Error ? error.message : 'Unknown error' });
       }
       
-      if (mcpSmithery) {
-        try {
-          const smitheryTemplates = await mcpSmithery.resources.templates();
-          Object.assign(templates, smitheryTemplates);
-        } catch (error) {
-          logger.error('Failed to get Smithery MCP resource templates', { error: error instanceof Error ? error.message : 'Unknown error' });
-        }
-      }
+//      if (mcpSmithery) {
+//        try {
+//          const smitheryTemplates = await mcpSmithery.resources.templates();
+//          Object.assign(templates, smitheryTemplates);
+//        } catch (error) {
+//          logger.error('Failed to get Smithery MCP resource templates', { error: error instanceof Error ? error.message : 'Unknown error' });
+//        }
+//      }
       
       return templates;
     },
@@ -363,8 +361,8 @@ export const mcp = {  /**
       
       if (stdioServers.includes(server)) {
         return mcpStdio;
-      } else if (smitheryServers.includes(server) && mcpSmithery) {
-        return mcpSmithery;
+//      } else if (smitheryServers.includes(server) && mcpSmithery) {
+//        return mcpSmithery;
       }
       return null;
     }
@@ -907,7 +905,7 @@ export function clearMCPAnalytics() {
 export const checkMCPServersHealth = createTraceableAgent(
   'mcp-health-check',
   async (): Promise<Record<string, { status: string; tools?: number; error?: string }>> => {
-    const servers = ['filesystem', 'winterm', 'duckduckgo', 'jsSandbox', 'docker'];
+    const servers = ['filesystem', 'jsSandbox', 'docker'];
     const healthStatus: Record<string, { status: string; tools?: number; error?: string }> = {};
 
     for (const server of servers) {
