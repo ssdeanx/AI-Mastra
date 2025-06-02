@@ -5,7 +5,7 @@ FROM node:20.18-alpine
 
 # Install minimal dependencies
 RUN apk add --no-cache git
-RUN git config
+
 # Install mastra CLI globally
 RUN npm install -g mastra@latest
 
