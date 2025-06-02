@@ -32,6 +32,7 @@ import { init } from '@mastra/inngest';
 import { generateId } from 'ai';
 import { PinoLogger } from '@mastra/loggers';
 
+
 // Import agents
 import { masterAgent } from '../../agents/masterAgent';
 import { supervisorAgent } from '../../agents/supervisorAgent';
@@ -679,8 +680,9 @@ export const intelligentCoordinationWorkflow = createWorkflow({
       task: z.string(),
       qualityThreshold: z.number(),
       maxIterations: z.number(),
-      currentIteration: z.number().default(1)
-    }),    outputSchema: z.object({
+      currentIteration: z.number() // Removed .default(1)
+    }),
+    outputSchema: z.object({
       agentResults: z.array(z.object({
         agentName: z.string(),
         output: z.any(),
@@ -792,7 +794,8 @@ export const intelligentCoordinationWorkflow = createWorkflow({
   }
 )
 .then(createStep({
-  id: 'final-synthesis',  inputSchema: z.object({
+  id: 'final-synthesis',
+  inputSchema: z.object({
     agentResults: z.array(z.object({
       agentName: z.string(),
       output: z.any(),
@@ -801,6 +804,7 @@ export const intelligentCoordinationWorkflow = createWorkflow({
       success: z.boolean()
     })),
     overallQuality: z.number(),
+    shouldContinue: z.boolean(), // Add this missing property
     currentIteration: z.number(),
     maxIterations: z.number(),
     qualityThreshold: z.number(),
@@ -811,8 +815,12 @@ export const intelligentCoordinationWorkflow = createWorkflow({
   }),
   outputSchema: coordinationOutputSchema,
   execute: async ({ inputData }) => {
-    const { agentResults, overallQuality, currentIteration, improvements, recommendation, task, selectedAgents } = inputData;
+    const { agentResults, overallQuality, currentIteration, improvements, recommendation, task, selectedAgents, shouldContinue } = inputData;
     
+    // Log completion reason
+    const completionReason = !shouldContinue 
+      ? (overallQuality >= inputData.qualityThreshold ? 'Quality threshold reached' : 'Max iterations reached')
+      : 'Manual termination';
     const finalResults = agentResults.map(result => ({
       agentName: result.agentName,
       iteration: currentIteration - 1, // Subtract 1 since we incremented after last execution
@@ -828,7 +836,8 @@ export const intelligentCoordinationWorkflow = createWorkflow({
       coordinationId,
       finalQuality: overallQuality,
       totalIterations: currentIteration - 1,
-      agentCount: selectedAgents.length
+      agentCount: selectedAgents.length,
+      completionReason
     });
 
     return {

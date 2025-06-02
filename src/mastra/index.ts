@@ -34,7 +34,6 @@ import {
   createTelemetryConfig,
   EnhancedAISDKExporter
 } from './observability';
-import { im } from 'mathjs';
 
 /**
  * Main Mastra instance with integrated multi-agent workflows and observability

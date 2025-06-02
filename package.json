@@ -31,6 +31,8 @@
     "@mastra/mcp-registry-registry": "^0.10.0",
     "@mastra/memory": "^0.10.1",
     "@mastra/rag": "^0.10.1",
+    "@mastra/voice-google": "^0.10.0",
+    "@mastra/voice-playai": "^0.10.0",
     "ai": "^4.3.16",
     "date-fns": "^4.1.0",
     "js-tiktoken": "^1.0.20",
