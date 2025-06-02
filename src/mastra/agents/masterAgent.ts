@@ -81,8 +81,8 @@ When responding:
 Use the mcp tool to interact with the Model Context Protocol.
 `,
   model: createTracedGoogleModel('gemini-2.5-flash-preview-05-20', {
-    name: 'supervisor-agent-model',
-    tags: ['agent', 'supervisor', 'MCP'],
+    name: 'master-agent-model',
+    tags: ['agent', 'master', 'MCP'],
     thinkingConfig: { thinkingBudget: 2048 },
     maxTokens: 64000,
     temperature: 0.7,

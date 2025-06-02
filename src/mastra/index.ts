@@ -1,3 +1,4 @@
+import { Inngest } from 'inngest';
 import { stockAgent } from './agents/stockAgent';
 import { supervisorAgent } from './agents/supervisorAgent';
 import { masterAgent } from './agents/masterAgent';
@@ -11,11 +12,15 @@ import { contentCreationWorkflow } from './workflows/content-creation-workflow';
 import { dataProcessingWorkflow } from './workflows/data-processing-workflow';
 import { ragKnowledgeWorkflow } from './workflows/rag-knowledge-workflow';
 import { evaluationTestingWorkflow } from './workflows/evaluation-testing-workflow';
+import { intelligentCoordinationWorkflow } from './workflows/inngest/intelligent-coordination-workflow';
+import { agentTrainingWorkflow } from './workflows/inngest/agent-training-workflow';
 import { weatherAgent } from './agents/weather-agent';
 import { mcpAgent } from './agents/mcpAgent';
 import { ragAgent } from './agents/ragAgent';
 import { agentStorage, agentVector } from './agentMemory';
-
+// Import Inngest for workflow management
+import { inngest } from './inngest/index';
+import { serve as inngestServe } from "@mastra/inngest";
 // Import agent networks
 import {
   researchNetwork,
@@ -29,6 +34,7 @@ import {
   createTelemetryConfig,
   EnhancedAISDKExporter
 } from './observability';
+import { im } from 'mathjs';
 
 /**
  * Main Mastra instance with integrated multi-agent workflows and observability
@@ -53,7 +59,9 @@ export const mastra = new Mastra({
     contentCreationWorkflow,
     dataProcessingWorkflow,
     ragKnowledgeWorkflow,
-    evaluationTestingWorkflow
+    evaluationTestingWorkflow,
+    intelligentCoordinationWorkflow,
+    agentTrainingWorkflow
   },
   agents: { weatherAgent, mcpAgent, stockAgent, supervisorAgent, masterAgent, workerAgent, ragAgent },
   networks: {
@@ -69,6 +77,26 @@ export const mastra = new Mastra({
     name: 'Mastra',
     level: 'info',
   }),
+  server: {
+    // The server configuration is required to allow local docker container can connect to the mastra server
+    host: "0.0.0.0",
+    apiRoutes: [
+      // This API route is used to register the Mastra workflow (inngest function) on the inngest server
+      {
+        path: "/api/inngest",
+        method: "ALL",
+        createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
+        // The inngestServe function integrates Mastra workflows with Inngest by:
+        // 1. Creating Inngest functions for each workflow with unique IDs (workflow.${workflowId})
+        // 2. Setting up event handlers that:
+        //    - Generate unique run IDs for each workflow execution
+        //    - Create an InngestExecutionEngine to manage step execution
+        //    - Handle workflow state persistence and real-time updates
+        // 3. Establishing a publish-subscribe system for real-time monitoring
+        //    through the workflow:${workflowId}:${runId} channel
+      },
+    ],
+  },
   telemetry: createTelemetryConfig({
     serviceName: "pr-warmhearted-jewellery-74",
     enabled: true,
@@ -82,3 +110,5 @@ export const mastra = new Mastra({
     }
   }),
 });
+
+

@@ -1,0 +1,8 @@
+{
+  "install": "npm install",
+  "start": "mastra dev",
+  "build": {
+    "context": ".",
+    "dockerfile": "Dockerfile"
+  }
+}
