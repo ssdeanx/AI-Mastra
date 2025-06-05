@@ -1,6 +1,6 @@
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
- 
+
 // Helper function to fetch stock data
 const getStockPrice = async (symbol: string) => {
   const response = await fetch(
@@ -9,7 +9,7 @@ const getStockPrice = async (symbol: string) => {
   const data = await response.json();
   return data.prices["4. close"];
 };
- 
+
 // Create a tool to get stock prices
 export const stockPriceTool = createTool({
   id: "getStockPrice",
@@ -25,7 +25,7 @@ export const stockPriceTool = createTool({
   }),
   execute: async ({ context }) => {
     const price = await getStockPrice(context.symbol);
- 
+
     return {
       symbol: context.symbol,
       price: parseFloat(price),
@@ -34,7 +34,7 @@ export const stockPriceTool = createTool({
     };
   },
 });
- 
+
 // Create a tool that uses the thread context
 export const threadInfoTool = createTool({
   id: "getThreadInfo",
@@ -48,4 +48,5 @@ export const threadInfoTool = createTool({
       resourceId: context.context.includeResource ? context.resourceId : undefined,
       timestamp: new Date().toISOString(),
     };
-  },});
+  },
+});

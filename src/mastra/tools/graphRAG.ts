@@ -34,7 +34,8 @@ export const GraphRAGInputSchema = z.object({
     randomWalkSteps: z.number().int().positive("randomWalkSteps must be a positive integer.").optional(),
     restartProb: z.number().min(0).max(1, "restartProb must be between 0 and 1.").optional(),
   }).optional(),
-}).refine(data => data.documentChunks.length === data.embeddings.length, {  message: "The number of document chunks must match the number of embeddings.",
+}).refine(data => data.documentChunks.length === data.embeddings.length, {
+  message: "The number of document chunks must match the number of embeddings.",
   path: ["embeddings"], // Path to highlight for this error
 });
 export type IGraphRAGInput = z.infer<typeof GraphRAGInputSchema>;

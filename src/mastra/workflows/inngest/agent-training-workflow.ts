@@ -20,6 +20,7 @@ import { inngest } from '../../inngest';
 import { init } from '@mastra/inngest';
 import { generateId } from 'ai';
 import { PinoLogger } from '@mastra/loggers';
+import { createTracedGoogleModel } from '../../observability';
 
 // Import agents
 import { masterAgent } from '../../agents/masterAgent';
@@ -32,9 +33,9 @@ import { workerAgent } from '../../agents/workerAgent';
 
 const { createWorkflow, createStep } = init(inngest);
 
-const logger = new PinoLogger({ 
-  name: 'agent-training-workflow', 
-  level: 'info' 
+const logger = new PinoLogger({
+  name: 'agent-training-workflow',
+  level: 'info'
 });
 
 // Training Schemas
@@ -98,7 +99,7 @@ const trainingOutputSchema = z.object({
   })
 });
 
-// Agent Registry
+// Agent Registry with original agents
 const agentRegistry = {
   masterAgent,
   supervisorAgent,
@@ -107,7 +108,16 @@ const agentRegistry = {
   stockAgent,
   weatherAgent,
   workerAgent
-};
+} as const;
+
+// Helper function to get an agent by name
+function getAgent(name: string) {
+  const agent = agentRegistry[name as keyof typeof agentRegistry];
+  if (!agent) {
+    throw new Error(`Agent ${name} not found in registry`);
+  }
+  return agent;
+}
 
 /**
  * Real Performance Assessment Implementation
@@ -128,7 +138,7 @@ export async function assessAgentPerformance(params: {
   detailedAnalysis: string[];
 }> {
   const { agentName, testCase, agentOutput, expectedOutput, executionTime, cycle } = params;
-  
+
   // Accuracy Assessment (0-100)
   let accuracy = 70; // Base accuracy
   if (expectedOutput) {
@@ -139,7 +149,7 @@ export async function assessAgentPerformance(params: {
     const semanticSimilarity = commonWords.length / Math.max(outputWords.length, expectedWords.length);
     accuracy = Math.min(100, 60 + (semanticSimilarity * 40));
   }
-  
+
   // Efficiency Assessment (0-100)
   const expectedTimes = {
     weatherAgent: 3000,
@@ -150,37 +160,37 @@ export async function assessAgentPerformance(params: {
     masterAgent: 6000,
     workerAgent: 2500
   };
-  
+
   const expectedTime = expectedTimes[agentName as keyof typeof expectedTimes] || 4000;
   const efficiencyRatio = expectedTime / executionTime;
   let efficiency = Math.min(100, Math.max(0, efficiencyRatio * 80));
-  
+
   // Quality Assessment (0-100)
   let quality = 60; // Base quality
-  
+
   // Check for completeness
   if (agentOutput.length > 100) quality += 10;
   if (agentOutput.length > 300) quality += 10;
-  
+
   // Check for structure
   if (/\n/.test(agentOutput)) quality += 5; // Multi-line responses
   if (/\d/.test(agentOutput)) quality += 5; // Contains numbers/data
   if (/[.!?]/.test(agentOutput)) quality += 5; // Proper punctuation
-  
+
   // Check for errors
   if (agentOutput.toLowerCase().includes('error')) quality -= 20;
   if (agentOutput.toLowerCase().includes('sorry') || agentOutput.toLowerCase().includes('cannot')) quality -= 10;
-  
+
   // Consistency Assessment (0-100) - Improves with training cycles
   let consistency = Math.min(100, 50 + (cycle * 8)); // Improves with training
-  
+
   const detailedAnalysis = [
     `Accuracy: ${accuracy.toFixed(1)}% - ${accuracy > 80 ? 'Excellent' : accuracy > 60 ? 'Good' : 'Needs Improvement'}`,
     `Efficiency: ${efficiency.toFixed(1)}% - Execution time: ${executionTime}ms vs expected ${expectedTime}ms`,
     `Quality: ${quality.toFixed(1)}% - Response length: ${agentOutput.length} characters`,
     `Consistency: ${consistency.toFixed(1)}% - Training cycle: ${cycle}`
   ];
-  
+
   return {
     accuracy: Math.round(accuracy),
     efficiency: Math.round(efficiency),
@@ -205,10 +215,10 @@ export async function generateTrainingFeedback(params: {
   improvementAreas: string[];
 }> {
   const { agentName, performanceMetrics, cycle, learningRate } = params;
-  
+
   const improvements = [];
   const adjustments = [];
-  
+
   // Analyze performance gaps
   if (performanceMetrics.accuracy < 80) {
     improvements.push('Focus on understanding task requirements more precisely');
@@ -219,7 +229,7 @@ export async function generateTrainingFeedback(params: {
       reason: 'Improving task comprehension and response relevance'
     });
   }
-  
+
   if (performanceMetrics.efficiency < 70) {
     improvements.push('Optimize response generation speed');
     adjustments.push({
@@ -229,7 +239,7 @@ export async function generateTrainingFeedback(params: {
       reason: 'Reducing processing overhead and improving response time'
     });
   }
-  
+
   if (performanceMetrics.quality < 75) {
     improvements.push('Enhance response structure and completeness');
     adjustments.push({
@@ -239,7 +249,7 @@ export async function generateTrainingFeedback(params: {
       reason: 'Improving response depth and structure'
     });
   }
-  
+
   if (performanceMetrics.consistency < 70) {
     improvements.push('Maintain consistent performance across different inputs');
     adjustments.push({
@@ -249,14 +259,14 @@ export async function generateTrainingFeedback(params: {
       reason: 'Stabilizing performance across diverse scenarios'
     });
   }
-  
+
   const feedbackMessage = `Training Cycle ${cycle} Feedback for ${agentName}:\n` +
     `Performance Summary: Accuracy ${performanceMetrics.accuracy}%, ` +
     `Efficiency ${performanceMetrics.efficiency}%, Quality ${performanceMetrics.quality}%, ` +
     `Consistency ${performanceMetrics.consistency}%\n` +
     `Improvement Areas: ${improvements.join(', ')}\n` +
     `Recommended adjustments have been applied with learning rate ${learningRate}`;
-  
+
   return {
     feedbackMessage,
     adjustments,
@@ -286,37 +296,68 @@ const trainingPreparationStep = createStep({
     })
   }),
   execute: async ({ inputData }) => {
-    const { targetAgent, trainingData, validationSplit, maxTrainingCycles, learningRate, performanceTargets } = inputData;
-    
-    logger.info('Preparing training data', { 
-      targetAgent, 
+    // Validate input data
+    if (!inputData) {
+      throw new Error('Input data is required');
+    }
+
+    const { targetAgent, trainingData, validationSplit = 0.2, maxTrainingCycles = 5, learningRate = 0.3, performanceTargets = {
+      accuracyThreshold: 85,
+      efficiencyTarget: 5000,
+      qualityThreshold: 80,
+      consistencyThreshold: 75
+    } } = inputData;
+
+    // Validate target agent exists
+    if (!targetAgent || !agentRegistry[targetAgent as keyof typeof agentRegistry]) {
+      const availableAgents = Object.keys(agentRegistry).join(', ');
+      throw new Error(`Target agent '${targetAgent}' not found. Available agents: ${availableAgents}`);
+    }
+
+    // Validate training data
+    if (!Array.isArray(trainingData) || trainingData.length === 0) {
+      throw new Error('Training data must be a non-empty array');
+    }
+
+    logger.info('Preparing training data', {
+      targetAgent,
       totalCases: trainingData.length,
-      validationSplit 
+      validationSplit,
+      maxTrainingCycles,
+      learningRate,
+      performanceTargets
     });
-    
+
+    // Ensure we have a valid model for the agent
+    const agent = getAgent(targetAgent);
+    // Verify the agent has the required methods
+    if (typeof agent !== 'object' || agent === null) {
+      throw new Error(`Invalid agent configuration for: ${targetAgent}`);
+    }
+
     // Shuffle and split data
     const shuffledData = [...trainingData].sort(() => Math.random() - 0.5);
     const splitIndex = Math.floor(shuffledData.length * (1 - validationSplit));
-    
+
     const trainingSet = shuffledData.slice(0, splitIndex);
     const validationSet = shuffledData.slice(splitIndex);
-    
+
     // Analyze difficulty distribution
     const difficultyCounts = trainingData.reduce((acc, item) => {
       acc[item.difficulty] = (acc[item.difficulty] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
-    
+
     // Estimate training duration
     const expectedDuration = trainingSet.length * maxTrainingCycles * 5; // 5 seconds per case
-    
+
     logger.info('Training preparation completed', {
       trainingCases: trainingSet.length,
       validationCases: validationSet.length,
       difficultyCounts,
       expectedDuration
     });
-    
+
     return {
       targetAgent,
       trainingSet,
@@ -362,7 +403,7 @@ const trainingCycleStep = createStep({
     currentCycle: z.number().default(1),
     performanceHistory: z.array(z.any()).default([]),
     cumulativeAdjustments: z.array(z.any()).default([])
-  }),outputSchema: z.object({
+  }), outputSchema: z.object({
     targetAgent: z.string(),
     trainingSet: z.array(z.any()),
     validationSet: z.array(z.any()),
@@ -389,32 +430,36 @@ const trainingCycleStep = createStep({
     performanceHistory: z.array(z.any()),
     cumulativeAdjustments: z.array(z.any()),
     currentCycle: z.number()
-  }),  execute: async ({ inputData }) => {
+  }), execute: async ({ inputData }) => {
     const { targetAgent, trainingSet, trainingConfig, currentCycle, performanceHistory, cumulativeAdjustments } = inputData;
-    
-    logger.info('Starting training cycle', { 
-      targetAgent, 
+
+    logger.info('Starting training cycle', {
+      targetAgent,
       cycle: currentCycle,
-      trainingCases: trainingSet.length 
+      trainingCases: trainingSet.length
     });
-    
+
     const agent = agentRegistry[targetAgent as keyof typeof agentRegistry];
     if (!agent) {
       throw new Error(`Agent ${targetAgent} not found in registry`);
     }
-    
+
     const cycleResults = [];
     let totalExecutionTime = 0;
-    
+
     // Execute training cases
     for (const [index, trainingCase] of trainingSet.entries()) {
       const startTime = Date.now();
-      
+
       try {
-        const result = await agent.generate([{ 
-          role: 'user', 
-          content: trainingCase.input 
-        }], trainingCase.context || {});
+        // Use the agent's main method (this assumes the agent has a standard interface)
+        const result = await (agent as any)({
+          messages: [{
+            role: 'user',
+            content: trainingCase.input
+          }],
+          ...(trainingCase.context && { context: trainingCase.context })
+        });
         
         const executionTime = Date.now() - startTime;
         totalExecutionTime += executionTime;
@@ -422,28 +467,28 @@ const trainingCycleStep = createStep({
         const performance = await assessAgentPerformance({
           agentName: targetAgent,
           testCase: trainingCase,
-          agentOutput: result.text || '',
+          agentOutput: result?.content || '',
           expectedOutput: trainingCase.expectedOutput,
           executionTime,
           cycle: currentCycle
         });
-        
+
         cycleResults.push({
           caseIndex: index,
           performance,
           executionTime,
           success: true
         });
-        
-        logger.debug('Training case completed', { 
-          caseIndex: index, 
-          performance: performance.accuracy 
+
+        logger.debug('Training case completed', {
+          caseIndex: index,
+          performance: performance.accuracy
         });
-        
+
       } catch (error) {
         const executionTime = Date.now() - startTime;
         const errorMessage = error instanceof Error ? error.message : String(error);
-        
+
         cycleResults.push({
           caseIndex: index,
           performance: { accuracy: 0, efficiency: 0, quality: 0, consistency: 0 },
@@ -451,11 +496,11 @@ const trainingCycleStep = createStep({
           success: false,
           error: errorMessage
         });
-        
+
         logger.error('Training case failed', { caseIndex: index, error: errorMessage });
       }
     }
-    
+
     // Calculate cycle performance
     const avgPerformance = {
       accuracy: cycleResults.reduce((sum, r) => sum + r.performance.accuracy, 0) / cycleResults.length,
@@ -463,7 +508,7 @@ const trainingCycleStep = createStep({
       quality: cycleResults.reduce((sum, r) => sum + r.performance.quality, 0) / cycleResults.length,
       consistency: cycleResults.reduce((sum, r) => sum + r.performance.consistency, 0) / cycleResults.length
     };
-    
+
     // Generate training feedback
     const feedback = await generateTrainingFeedback({
       agentName: targetAgent,
@@ -472,32 +517,32 @@ const trainingCycleStep = createStep({
       cycle: currentCycle,
       learningRate: trainingConfig.learningRate
     });
-    
+
     // Update performance history
     const updatedHistory = [...performanceHistory, {
       cycle: currentCycle,
       ...avgPerformance,
       timestamp: new Date().toISOString()
     }];
-    
+
     // Update cumulative adjustments
     const updatedAdjustments = [...cumulativeAdjustments, ...feedback.adjustments];
-    
+
     // Check if targets are achieved
-    const targetAchieved = 
+    const targetAchieved =
       avgPerformance.accuracy >= trainingConfig.targets.accuracy &&
       avgPerformance.quality >= trainingConfig.targets.quality &&
       avgPerformance.consistency >= trainingConfig.targets.consistency;
-    
+
     const shouldContinue = !targetAchieved && currentCycle < trainingConfig.cycles;
-    
+
     logger.info('Training cycle completed', {
       cycle: currentCycle,
       performance: avgPerformance,
       targetAchieved,
       shouldContinue
     });
-    
+
     return {
       targetAgent,
       trainingSet: inputData.trainingSet,
@@ -553,35 +598,35 @@ const validationStep = createStep({
     cumulativeAdjustments: z.array(z.any()),
     currentCycle: z.number()
   }),
-  outputSchema: trainingOutputSchema,  execute: async ({ inputData }) => {
+  outputSchema: trainingOutputSchema, execute: async ({ inputData }) => {
     const { targetAgent, validationSet, performanceHistory, cumulativeAdjustments, currentCycle, trainingConfig } = inputData;
-    
-    logger.info('Starting validation assessment', { 
-      targetAgent, 
+
+    logger.info('Starting validation assessment', {
+      targetAgent,
       validationCases: validationSet.length,
       cyclesCompleted: currentCycle - 1
     });
-    
+
     const agent = agentRegistry[targetAgent as keyof typeof agentRegistry];
     if (!agent) {
       throw new Error(`Agent ${targetAgent} not found in registry`);
     }
-    
+
     const validationResults = [];
     let passedTests = 0;
-    
+
     // Run validation tests
     for (const [index, testCase] of validationSet.entries()) {
       const startTime = Date.now();
-      
+
       try {
-        const result = await agent.generate([{ 
-          role: 'user', 
-          content: testCase.input 
+        const result = await agent.generate([{
+          role: 'user',
+          content: testCase.input
         }], testCase.context || {});
-        
+
         const executionTime = Date.now() - startTime;
-        
+
         const performance = await assessAgentPerformance({
           agentName: targetAgent,
           testCase,
@@ -590,12 +635,12 @@ const validationStep = createStep({
           executionTime,
           cycle: currentCycle
         });
-        
+
         const overallScore = (performance.accuracy + performance.efficiency + performance.quality + performance.consistency) / 4;
         const passed = overallScore >= 70; // 70% threshold for passing
-        
+
         if (passed) passedTests++;
-        
+
         validationResults.push({
           testIndex: index,
           performance,
@@ -603,7 +648,7 @@ const validationStep = createStep({
           passed,
           executionTime
         });
-        
+
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         validationResults.push({
@@ -616,16 +661,16 @@ const validationStep = createStep({
         });
       }
     }
-    
+
     // Calculate final metrics
     const finalPerformance = performanceHistory.length > 0 ? performanceHistory[performanceHistory.length - 1] : {
       accuracy: 0, efficiency: 0, quality: 0, consistency: 0
     };
-    
+
     const initialPerformance = performanceHistory.length > 0 ? performanceHistory[0] : finalPerformance;
-    const improvementRate = performanceHistory.length > 1 ? 
+    const improvementRate = performanceHistory.length > 1 ?
       ((finalPerformance.accuracy - initialPerformance.accuracy) / Math.max(initialPerformance.accuracy, 1)) * 100 : 0;
-    
+
     // Generate training insights
     const insights = [
       `Training completed in ${currentCycle - 1} cycles`,
@@ -634,7 +679,7 @@ const validationStep = createStep({
       `Total adjustments made: ${cumulativeAdjustments.length}`,
       `Learning rate effectiveness: ${trainingConfig.learningRate > 0.5 ? 'High' : 'Moderate'}`
     ];
-    
+
     // Generate recommendations
     const recommendations = [];
     if (finalPerformance.accuracy < trainingConfig.targets.accuracy) {
@@ -649,11 +694,11 @@ const validationStep = createStep({
     if (passedTests / validationSet.length < 0.8) {
       recommendations.push('Review validation cases and adjust training targets');
     }
-    
+
     // Determine training status
     let trainingStatus: 'completed' | 'target_achieved' | 'max_cycles_reached' | 'failed';
-    if (finalPerformance.accuracy >= trainingConfig.targets.accuracy && 
-        finalPerformance.quality >= trainingConfig.targets.quality) {
+    if (finalPerformance.accuracy >= trainingConfig.targets.accuracy &&
+      finalPerformance.quality >= trainingConfig.targets.quality) {
       trainingStatus = 'target_achieved';
     } else if (currentCycle - 1 >= trainingConfig.cycles) {
       trainingStatus = 'max_cycles_reached';
@@ -662,10 +707,10 @@ const validationStep = createStep({
     } else {
       trainingStatus = 'completed';
     }
-    
+
     const trainingId = generateId();
     const trainingDuration = performanceHistory.reduce((sum, cycle) => sum + 5000, 0); // Estimated duration
-    
+
     logger.info('Training validation completed', {
       trainingId,
       targetAgent,
@@ -673,7 +718,7 @@ const validationStep = createStep({
       finalPerformance,
       validationSuccessRate: passedTests / validationSet.length
     });
-    
+
     return {
       trainingId,
       targetAgent,
@@ -711,21 +756,21 @@ export const agentTrainingWorkflow = createWorkflow({
   inputSchema: trainingInputSchema,
   outputSchema: trainingOutputSchema,
 })
-.then(trainingPreparationStep)
-.dountil(
-  trainingCycleStep,
-  // Continue training while targets not achieved and cycles remaining
-  async ({ inputData }) => {
-    const shouldContinue = inputData.shouldContinue && !inputData.targetAchieved;
-    
-    logger.info('Training continuation check', {
-      shouldContinue,
-      targetAchieved: inputData.targetAchieved,
-      currentCycle: inputData.currentCycle
-    });
-    
-    return shouldContinue;
-  }
-)
-.then(validationStep)
-.commit();
+  .then(trainingPreparationStep)
+  .dountil(
+    trainingCycleStep,
+    // Continue training while targets not achieved and cycles remaining
+    async ({ inputData }) => {
+      const shouldContinue = inputData.shouldContinue && !inputData.targetAchieved;
+
+      logger.info('Training continuation check', {
+        shouldContinue,
+        targetAchieved: inputData.targetAchieved,
+        currentCycle: inputData.currentCycle
+      });
+
+      return shouldContinue;
+    }
+  )
+  .then(validationStep)
+  .commit();
