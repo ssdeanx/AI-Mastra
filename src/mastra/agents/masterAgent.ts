@@ -4,6 +4,8 @@ import { agentMemory } from '../agentMemory';
 import { PinoLogger } from '@mastra/loggers';
 import { vectorQueryTool } from '../tools/vectorQueryTool';
 import { createTracedGoogleModel } from '../observability';
+import { graphTool } from '../tools/graphRAGTool';
+
 const logger = new PinoLogger({
     name: 'Mastra',
     level: 'info',
@@ -88,6 +90,7 @@ Use the mcp tool to interact with the Model Context Protocol.
   }),
   tools: {
     vectorQueryTool,
+    graphTool,
     ...(await mcp.getTools())
   },
   memory: agentMemory,

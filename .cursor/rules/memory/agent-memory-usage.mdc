@@ -1,5 +1,75 @@
 ---
-description:
-globs:
+description: Provides guidelines and best practices for how AI agents in the AI-Mastra framework should interact with and utilize the shared 'agentMemory' system. Covers context management, semantic recall, thread organization, and awareness of memory processing features like token limiting and summarization.
+globs: 
 alwaysApply: false
 ---
+---
+Rule Type: Agent Requested
+Description: "Provides guidelines and best practices for how AI agents in the AI-Mastra framework should interact with and utilize the shared 'agentMemory' system. Covers context management, semantic recall, thread organization, and awareness of memory processing features like token limiting and summarization."
+---
+
+# AI-Mastra Agent Memory Usage Guidelines
+
+The AI-Mastra framework features a sophisticated shared memory system, `agentMemory`, designed to provide agents with persistent context, semantic recall, and organized conversation management. This document outlines how agents should interact with this system and be aware of its capabilities and limitations. The core configuration and instantiation of `agentMemory` can be found in `@file AI-Mastra/src/mastra/agentMemory.ts`. Refer also to the "💾 Memory & Persistence" section in the main `@file AI-Mastra/README.md`.
+
+## 1. Overview of `agentMemory`
+The `agentMemory` instance is a shared component across all agents within the AI-Mastra framework. It is initialized with the following key characteristics:
+* **Storage:** Uses `agentStorage` (LibSQL-based) for persistent storage of messages and metadata.
+* **Vector Store:** Uses `agentVector` (LibSQL-based with vector support) for semantic search capabilities.
+* **Embedder:** Employs `fastembed` for generating vector embeddings of messages for semantic recall.
+* **Core Class:** Based on the `Memory` class, likely from `@mastra/memory` or `@mastra/core`.
+
+## 2. Key Memory Features and Agent Interaction
+
+### a. Thread-Based Conversation Management
+* **Concept:** Conversations are organized into threads, uniquely identified by a `resourceId` (e.g., a user ID, session ID) and a `threadId`. This ensures context is scoped correctly.
+* **Agent Responsibility:**
+    * Agents typically receive `threadId` and `resourceId` as part of the context in which they operate, especially within workflows or when handling user interactions.
+    * When an agent needs to persist new messages or retrieve context, it should do so within the scope of the current `threadId` and `resourceId`.
+* **Creating Threads:** While agents might not always create threads directly (this could be handled by higher-level orchestration or workflows), the capability exists via `agentMemory.createThread({ resourceId, threadId, title })`.
+
+### b. Semantic Recall and Context Retrieval
+* **Mechanism:** `agentMemory` supports semantic search using vector similarity. When new messages are added, they are embedded, and relevant past messages can be retrieved based on semantic closeness to a query or recent messages.
+* **Configuration (`semanticRecall` option):**
+    * `topK: 3`: Retrieves the top 3 semantically similar messages.
+    * `messageRange: { before: 5, after: 2 }`: When recalling context around a specific message, it fetches 5 messages before and 2 after it.
+* **Agent Usage:**
+    * Agents generally don't call `agentMemory.searchMessages()` directly in their primary logic. The Mastra framework, when invoking an agent, likely injects relevant context (a combination of recent messages and semantically recalled messages) into the prompt supplied to the agent's LLM.
+    * Agents should be written with the understanding that their input `messages` array might already contain this curated context.
+    * If an agent *does* need to perform an explicit semantic search (e.g., a RAG agent looking up specific knowledge), it would use `agentMemory.searchMessages({ threadId, vectorSearchString, topK })`.
+
+### c. Working Memory
+* **Enabled:** The `workingMemory` feature is enabled in the `agentMemory` configuration.
+* **Template:** A specific template for tasks and goals is defined. This suggests that agents can store and retrieve structured "scratchpad" information related to ongoing tasks or goals, separate from conversational messages.
+    ```
+    # Tasks & Goals
+    - Goal ID:
+    - Goal Name:
+    # ... (other fields as per agentMemory.ts)
+    ```
+* **Agent Interaction:** Agents designed to manage long-term tasks or complex goals should be aware of this working memory structure and how to query or update it (the specific API methods for working memory are not detailed in the README's "Memory Usage" but would be part of the `Memory` class interface).
+
+### d. Message Processors (Token Limiting & Summarization)
+The `agentMemory` instance is configured with processors that automatically manage the conversation history:
+
+* **`TokenLimiter(1000000)`:** This processor likely ensures that the total token count of messages stored or processed by memory does not exceed a very large limit (1 million tokens). Agents should generally not be concerned with hitting this absolute limit in typical interactions but should be mindful of generating excessively verbose outputs.
+* **Summarization Processor (`SummarizeProcessor`):**
+    * **Limit:** This custom processor seems to have a `limit` (also set to 1,000,000 in the example, which might be a placeholder or a very high threshold for summarization). If the number of messages exceeds this `limit`, the processor truncates older messages.
+    * **Behavior:** It keeps the most recent `limit` messages and prepends a system message like `"Summary of ${overflowCount} earlier messages."` to represent the truncated history.
+    * **Agent Awareness:** Agents should understand that for very long conversations, the earliest parts of the history might be replaced by such a summary message. Their reasoning should accommodate this potential loss of verbatim detail from distant past interactions. The actual summarization logic (if it does more than just insert a placeholder) isn't fully detailed in the snippet but is a critical behavior.
+
+### e. Standard Memory Operations (as per README)
+* **Adding Messages:** Agents (or the framework on their behalf) will add messages to a thread using methods like `agentMemory.addMessages({ threadId, messages: CoreMessage[] })`.
+* **Getting Messages:** Retrieving messages is likely done via `agentMemory.getMessages({ threadId, last?: number, before?: string, after?: string })`.
+* **Metadata:** The system supports rich context and tagging, though specific agent interactions with this metadata aren't detailed in the high-level files.
+
+## 3. Best Practices for Agents Using Memory
+
+* **Rely on Injected Context:** For most general-purpose agents, assume the Mastra framework will provide the necessary conversational context (recent messages + semantically relevant ones) as part of the input to the agent's `generate` method.
+* **Be Concise:** To manage token limits and improve the effectiveness of semantic recall, agents should strive for concise yet informative responses.
+* **Understand Summarization:** Be aware that very long histories might be summarized. If precise recall of very old information is critical for an agent's task, its design might need to consider alternative storage or cueing mechanisms (perhaps using working memory or specific tools).
+* **Scoped Interactions:** Always operate within the provided `threadId` and `resourceId` to maintain contextual integrity.
+* **Stateless Core Logic (Ideally):** While agents have access to memory, their core reasoning logic should primarily depend on the immediate input messages and tools, making them more predictable and testable. Memory provides the *context* for that reasoning.
+
+
+By understanding these aspects of the `agentMemory` system, developers can create agents that effectively leverage AI-Mastra's persistent memory and context management capabilities.

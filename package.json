@@ -16,7 +16,7 @@
     "node": ">=20.9.0"
   },
   "dependencies": {
-    "@ai-sdk/google": "^1.2.18",
+    "@ai-sdk/google": "^1.2.19",
     "@langchain/core": "^0.3.57",
     "@langchain/google-genai": "^0.2.10",
     "@mastra/core": "^0.10.1",
@@ -28,6 +28,7 @@
     "@mastra/libsql": "^0.10.0",
     "@mastra/loggers": "^0.10.0",
     "@mastra/mcp": "^0.10.1",
+    "@mastra/mcp-docs-server": "^0.11.0",
     "@mastra/mcp-registry-registry": "^0.10.0",
     "@mastra/memory": "^0.10.1",
     "@mastra/rag": "^0.10.1",
@@ -39,9 +40,9 @@
     "js-yaml": "^4.1.0",
     "json": "^11.0.0",
     "langchain": "^0.3.27",
-    "langsmith": "^0.3.29",
+    "langsmith": "^0.3.30",
     "mathjs": "^14.5.2",
-    "zod": "^3.25.46"
+    "zod": "^3.25.49"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
@@ -50,6 +51,6 @@
     "typescript": "^5.8.3"
   },
   "overrides": {
-    "@mastra/mcp-docs-server": "^0.0.14"
+    "@mastra/mcp-docs-server": "^0.11.0"
   }
 }

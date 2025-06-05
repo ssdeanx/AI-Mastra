@@ -1,5 +1,64 @@
 ---
-description:
-globs:
+description: 
+globs: src/mastra/agents/**/*.ts
 alwaysApply: false
 ---
+---
+Rule Type: Auto Attached
+Globs: ["src/mastra/agents/**/*.ts"]
+Description: "Provides guidelines and patterns for developing new AI agents within the AI-Mastra framework. This rule activates when editing files in the 'src/mastra/agents/' directory."
+---
+
+# AI-Mastra Agent Development Patterns
+
+This document outlines the standard patterns and best practices for creating new specialized AI agents within the AI-Mastra framework. Adherence to these guidelines ensures consistency, maintainability, and proper integration with the framework's core systems.
+
+## 1. Agent Definition
+New agents should be defined by instantiating the `Agent` class from `@mastra/core/agent`.
+The constructor accepts an object with the following key properties: `name`, `instructions`, `model`, `tools`, and `memory`.
+
+**Reference Implementation:** For a comprehensive example of a well-structured agent, refer to the Master Agent: `@file AI-Mastra/src/mastra/agents/masterAgent.ts`. The "Adding New Agents" section in the main `@file AI-Mastra/README.md` also provides a basic template.
+
+## 2. Key Agent Properties
+
+### `name` (String)
+* A descriptive and unique name for the agent (e.g., 'Weather Agent', 'RAG Agent').
+* This name is used for identification and logging purposes.
+
+### `instructions` (String)
+This is a critical part of the agent's definition. The instructions serve as the primary system prompt or meta-prompt that defines the agent's role, capabilities, behavior, and constraints.
+* **Structure:** Follow the detailed structure observed in existing agents like `@file AI-Mastra/src/mastra/agents/masterAgent.ts`. This typically includes sections such as:
+    * `ROLE DEFINITION`: Clearly state the agent's purpose and core function.
+    * `CORE CAPABILITIES`: List the specific tasks and abilities of the agent.
+    * `BEHAVIORAL GUIDELINES`: Define communication style, decision-making framework, and error handling approach.
+    * `ETHICAL CONSIDERATIONS`: Outline any ethical rules or data privacy constraints.
+    * `CONSTRAINTS & BOUNDARIES`: Specify scope limitations and security protocols.
+    * `SUCCESS CRITERIA`: Define what constitutes successful task completion for the agent.
+* **Clarity and Detail:** Instructions should be clear, unambiguous, and sufficiently detailed for the AI model to understand its expected behavior.
+* **Tool Usage:** If the agent uses tools, explicitly mention how and when to use them within the instructions.
+
+### `model` (ModelInstance)
+* The AI model instance the agent will use for generation.
+* **Use `createTracedGoogleModel`:** Always define the model using the `createTracedGoogleModel` utility from `@file AI-Mastra/src/mastra/observability/index.ts` (which internally uses `@file AI-Mastra/src/mastra/observability/googleProvider.ts`).
+* **Configuration:** Provide a descriptive `name` (e.g., `'master-agent-model'`) and relevant `tags` (e.g., `['agent', 'master']`) in the model configuration for enhanced observability in LangSmith.
+* **Model Parameters:** Configure model parameters like `maxTokens` and `temperature` as appropriate for the agent's tasks.
+
+### `tools` (Object)
+* An object where keys are tool names and values are the tool instances.
+* **Import Tools:** Import necessary tools from their respective modules (e.g., `@file AI-Mastra/src/mastra/tools/vectorQueryTool.ts`).
+* **MCP Tools:** For dynamic tools via the Model Context Protocol, use the pattern shown in `masterAgent.ts`: `...(await mcp.getTools())` where `mcp` is imported from `@file AI-Mastra/src/mastra/tools/mcp.ts`.
+* **Tool Naming:** Ensure tool names provided in the `tools` object are consistent with how they might be referred to in the agent's instructions or by the AI model.
+
+### `memory` (Memory)
+* The memory system the agent will use for context retention and retrieval.
+* **Use Shared `agentMemory`:** Typically, agents should use the shared `agentMemory` instance imported from `@file I-Mastra/src/mastra/agentMemory.ts`. This ensures a consistent memory backend and configuration across the framework.
+
+## 3. Logging
+* Instantiate and use `PinoLogger` for any specific logging needs within the agent's module, similar to the setup in `@file AI-Mastra/src/mastra/agents/masterAgent.ts`.
+* However, much of the core agent interaction logging will be handled by the Mastra framework and the LangSmith tracing.
+
+## 4. Exporting the Agent
+* Ensure the agent instance is correctly exported from its module file so it can be imported and registered in the main Mastra instance at `@file AI-Mastra/src/mastra/index.ts`.
+
+
+By following these patterns, new agents will integrate smoothly into the AI-Mastra architecture and benefit from its existing observability, memory, and tooling infrastructure.

@@ -1,5 +1,74 @@
 ---
-description:
-globs:
+description: 
+globs: src/mastra/tools/**/*.ts
 alwaysApply: false
 ---
+---
+Rule Type: Auto Attached
+Globs: ["src/mastra/tools/**/*.ts"]
+Description: "Establishes guidelines and best practices for developing tools in the AI-Mastra framework. This rule activates when editing files in the 'src/mastra/tools/' directory."
+---
+
+# AI-Mastra Tool Development Patterns
+
+This document outlines the standard patterns for creating and integrating tools within the AI-Mastra framework. Tools are fundamental components that provide specific capabilities to AI agents, enabling them to interact with external systems or perform specialized computations. Consistent tool development ensures interoperability, maintainability, and robust error handling.
+
+As stated in the project's main documentation (`@file AI-Mastra/README.md#🛠️-available-tools`), all tools should follow consistent patterns.
+
+## 1. Tool Definition and Structure
+While the specific base class or interface from `@mastra/core` is not explicitly detailed in the provided top-level files, tools generally expose functionality that agents can invoke. Individual tool files usually define:
+* An object or class instance representing the tool.
+* An `execute` method (or similarly named method) that takes an input object and returns a result.
+* Input and output schemas defined using Zod.
+
+**Reference Implementations:**
+* For a standard tool, refer to examples like the Weather Tool: `@file AI-Mastra/src/mastra/tools/weather-tool.ts` or the Vector Query Tool: `@file AI-Mastra/src/mastra/tools/vectorQueryTool.ts`.
+* For dynamically loaded MCP tools, refer to `@file AI-Mastra/src/mastra/tools/mcp.ts`.
+
+## 2. Schema Validation with Zod
+This is a critical aspect of tool development for ensuring data integrity and providing clear contracts for tool usage.
+* **Input and Output Schemas:** Every tool must define Zod schemas for its input parameters and output structure.
+    * The `inputSchema` validates the data passed to the tool's `execute` method.
+    * The `outputSchema` validates the data returned by the tool.
+* **Descriptive Schemas:** Utilize Zod's `.describe()` method to add human-readable descriptions to schema fields, which can be helpful for documentation and AI understanding.
+* **Parsing Inputs:** Within the `execute` method, parse the input data using the defined input schema to ensure its validity before proceeding with the tool's logic.
+
+## 3. `execute` Method
+* This is typically the main method an agent calls to use the tool.
+* It should be an `async` function if the tool performs asynchronous operations (e.g., API calls, file I/O).
+* The method should:
+    1.  Accept an input object (often named `context` or `inputData`).
+    2.  (Optionally) Validate the input using its Zod `inputSchema`.
+    3.  Perform the core logic of the tool.
+    4.  Return a result that conforms to its Zod `outputSchema`.
+
+## 4. Error Handling
+Robust error handling is essential for tools, as they often interact with external systems or perform operations that can fail.
+* **`try/catch` Blocks:** Wrap the core logic of the `execute` method, especially any I/O operations or external calls, within `try/catch` blocks.
+* **Specific Error Handling:** Catch specific error types where possible.
+* **Logging Errors:** Log any caught errors with sufficient context using the project's logger (accessible via the Mastra instance if the tool is part of a larger context, or a locally instantiated logger for standalone tool development).
+* **Informative Error Responses:** If a tool call fails, it should ideally return a structured error response or throw an error that can be caught and handled by the calling agent or workflow. The `README.md` mentions "Comprehensive error catching and reporting".
+
+## 5. Observability and Tracing
+* **LangSmith Integration:** Ensure that tool operations, especially those involving AI model calls or significant processing steps, are traceable via LangSmith. This is often handled by the agent or workflow invoking the tool if the tool itself doesn't make direct AI calls.
+* If a tool makes direct calls to AI models, those models should be wrapped with `createTracedGoogleModel` as per `@file AI-Mastra/src/mastra/observability/index.ts`.
+
+## 6. Memory and Context Integration
+* Tools should be designed to be context-aware if necessary, potentially receiving contextual information or relevant memory snippets as part of their input.
+* The `README.md` mentions "Memory Integration: Context-aware execution with agent memory" and "Thread Support: Conversation context preservation" as part of consistent integration patterns.
+
+## 7. MCP (Model Context Protocol) Tools
+* For tools accessed via MCP, the primary interaction point is the `mcp` object from `@file AI-Mastra/src/mastra/tools/mcp.ts`.
+* This object dynamically provides access to tools exposed by MCP servers (Filesystem, WinTerm, DuckDuckGo, JavaScript Sandbox, etc.).
+* Agents typically use `mcp.callTool('tool_name', { args })` to execute these dynamic tools.
+
+## 8. Documentation (TSDoc)
+* Provide comprehensive TSDoc comments for the tool itself, its `execute` method, and its input/output schemas.
+* Explain the tool's purpose, parameters, return values, and any potential errors.
+
+## 9. Exporting and Registration
+* Ensure the tool instance or its relevant functions are exported from its module.
+* Tools are typically made available to agents by including them in the `tools` object during agent initialization (see `@file AI-Mastra/src/mastra/agents/masterAgent.ts`).
+
+
+By following these development patterns, new tools will be robust, easy to integrate with agents, and aligned with the overall quality and observability standards of the AI-Mastra framework.

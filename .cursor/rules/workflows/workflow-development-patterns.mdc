@@ -1,5 +1,126 @@
 ---
-description:
-globs:
+description: 
+globs: src/mastra/workflows/**/*.ts,src/mastra/workflows/inngest/**/*.ts
 alwaysApply: false
 ---
+---
+Rule Type: Auto Attached
+Globs: ["src/mastra/workflows/**/*.ts", "src/mastra/workflows/inngest/**/*.ts"]
+Description: "Defines standards for creating workflows in AI-Mastra, with detailed guidance on Inngest integration for durable, event-driven processes. Activates when editing files in 'src/mastra/workflows/' or 'src/mastra/workflows/inngest/'."
+---
+
+# AI-Mastra Workflow Development Patterns
+
+This document outlines standard patterns for developing workflows in the AI-Mastra framework. Workflows orchestrate agents and tools for complex tasks. Adherence ensures consistency and proper integration with the Mastra core workflow engine and the Inngest durable execution layer.
+
+## 1. Workflow and Step Creation
+Workflows are defined using `createWorkflow` and steps using `createStep` from `@mastra/core/workflows`. For workflows managed by Inngest, these are then served as Inngest functions.
+
+**Primary Reference Implementation:** `@file /src/mastra/workflows/multi-agent-workflow.ts` for general Mastra workflows. For Inngest-specific patterns, examine files in `src/mastra/workflows/inngest/` like `@file /src/mastra/workflows/inngest/intelligent-coordination-workflow.ts`.
+
+## 2. Defining a Mastra Workflow
+Use `createWorkflow` for standard Mastra workflow definitions:
+* `id`: Unique string identifier (e.g., `'task-orchestration'`).
+* `inputSchema`: Zod schema for workflow input.
+* `outputSchema`: Zod schema for workflow output.
+
+## 3. Defining a Workflow Step (`createStep`)
+Key properties for a step:
+* `id`: Unique string identifier for the step (e.g., `'context-gathering'`).
+* `inputSchema` & `outputSchema`: Zod schemas for step data.
+* `execute`: Async function with `inputData` and `mastra` instance.
+    * This is where agent/tool calls occur.
+* **Human Approval Steps:** May include `resumeSchema`, `suspendSchema`, and use `suspend` utility.
+
+## 4. Chaining and Committing Workflows
+* Chain steps using `.then()` and finalize with `.commit()`.
+
+## 5. Inngest Integration for Durable Workflows
+Inngest provides the reliability layer for many AI-Mastra workflows, especially those involving long-running processes, asynchronous operations, event-driven triggers, or complex coordination.
+
+* **Purpose:** Inngest manages state, retries, and scheduling for your workflows, making them durable and resilient to transient failures, particularly when interacting with LLMs or external APIs.
+* **Mastra-Inngest Bridge:**
+    * The `inngest` client is initialized in `@file /src/mastra/inngest/index.ts`.
+    * The `inngestServe` function (from `@mastra/inngest`), used in `@file /src/mastra/index.ts`, exposes Mastra workflows as Inngest functions via the `/api/inngest` endpoint. This involves:
+        * Creating Inngest functions for each Mastra workflow intended for Inngest management (e.g., `intelligentCoordinationWorkflow`, `agentTrainingWorkflow` are registered this way).
+        * Setting up event handlers and managing workflow state persistence.
+* **Defining Inngest Functions:**
+    * Workflows intended to be managed by Inngest are typically defined using `inngest.createFunction(...)`.
+    * This function takes configuration for the trigger (e.g., `event`, `cron`), the function `id`, and a handler that receives `event` and `step` utilities.
+    * Example structure (conceptual, refer to actual Inngest workflow files like `@file /src/mastra/workflows/inngest/intelligent-coordination-workflow.ts`):
+      ```typescript
+      import { inngest } from '../inngest'; // From @file /src/mastra/inngest/index.ts
+      import { someMastraAgent } from '../../agents';
+
+      export const exampleInngestWorkflow = inngest.createFunction(
+        { id: 'example-inngest-workflow', name: 'Example Inngest Workflow' },
+        { event: 'app/example.event.triggered' },
+        async ({ event, step, logger }) => {
+          const inputData = event.data;
+
+          const resultStep1 = await step.run('step1-data-fetching', async () => {
+            // Call agents, tools, or other logic
+            // This block is retried on failure and its result is memoized
+            logger.info('Running step 1 with input:', inputData);
+            const agentResponse = await someMastraAgent.generate([{ role: 'user', content: inputData.prompt }]);
+            return { data: agentResponse.text };
+          });
+
+          await step.sleep('wait-for-processing', '5s'); // Durable sleep
+
+          const resultStep2 = await step.run('step2-finalization', async () => {
+            // Further processing using resultStep1.data
+            return { finalOutput: `Processed: ${resultStep1.data}` };
+          });
+
+          await step.sendEvent('notify-completion', { // Send event to trigger other functions or for notification
+            name: 'app/example.workflow.completed',
+            data: { workflowId: event.id, output: resultStep2.finalOutput },
+          });
+
+          return { event, body: resultStep2 };
+        }
+      );
+      ```
+* **Key Inngest Step Utilities (`step` object):**
+    * `step.run(name, handler)`: Wraps critical logic. Ensures the handler is retried on failure and its result is memoized. Calls to AI agents, external APIs, or any fallible operation should be within a `step.run()`.
+    * `step.sleep(name, duration)` / `step.sleepUntil(name, time)`: Pauses the workflow durably.
+    * `step.waitForEvent(name, options)`: Pauses the workflow until a specified event is received. Essential for human-in-the-loop or external triggers.
+    * `step.sendEvent(id, eventPayloads)`: Sends one or more events from within the workflow. This is the preferred way to trigger subsequent events or workflows as it links tracing.
+    * `step.invoke(name, options)`: Calls another Inngest function and waits for its result.
+* **Event Triggers:** Define how Inngest functions are initiated (e.g., `{ event: 'your/event.name' }`, `{ cron: 'TZ=America/New_York 0 0 * * *' }`).
+* **Concurrency, Throttling, Debouncing:** Configure these on your Inngest function definition to manage load, API rate limits, or execution frequency. For example:
+    ```typescript
+    // Conceptual
+    export const rateLimitedFunction = inngest.createFunction(
+      {
+        id: 'rate-limited-fn',
+        concurrency: { limit: 5 }, // Max 5 concurrent runs
+        // or debounce: { period: '10s' }
+      },
+      { event: 'some/trigger.event' },
+      async ({ event, step }) => { /* ... */ }
+    );
+    ```
+* **Logging:** Use the `logger` provided in the Inngest function handler (`async ({ event, step, logger }) => { ... }`) for logs that will be captured and displayed within the Inngest dashboard for that specific run.
+* **Error Handling:** While `step.run` handles retries, ensure your step logic within it correctly throws errors to trigger Inngest's retry mechanism. Catch and handle business logic errors as needed.
+
+## 6. Agent and Tool Invocation (within Mastra Steps or Inngest `step.run`)
+* Invoke agents via `agent.generate(...)`.
+* Import agents from their respective modules (e.g., `@file /src/mastra/agents/mcpAgent.ts`).
+
+## 7. Logging (General)
+* For standard Mastra workflow steps, use `mastra.getLogger()`.
+* For Inngest functions, use the `logger` passed to the handler.
+
+## 8. Error Handling (General)
+* Wrap operations in `try/catch` within `execute` functions or Inngest `step.run` handlers.
+* Log errors appropriately.
+
+## 9. Exporting and Registration
+* Export workflow instances.
+* Register Mastra workflows (those not solely managed by Inngest `createFunction`) in `@file /src/mastra/index.ts`.
+* Inngest functions defined with `inngest.createFunction` are typically collected and passed to `serve` or deployed via Inngest CLI. Your `@mastra/inngest` `inngestServe` handles registration of Mastra workflows as Inngest functions.
+
+
+By understanding these patterns, especially the role and utilization of Inngest for durable execution, developers can build robust and reliable multi-step processes within AI-Mastra.

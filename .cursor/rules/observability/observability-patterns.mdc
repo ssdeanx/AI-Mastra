@@ -1,5 +1,119 @@
 ---
-description:
-globs:
+description: 
+globs: src/mastra/observability/**/*.ts,src/mastra/index.ts,src/mastra/agents/**/*.ts,src/mastra/workflows/**/*.ts,src/mastra/tools/**/*.ts
 alwaysApply: false
 ---
+---
+Rule Type: Auto Attached
+Globs: ["src/mastra/observability/**/*.ts", "src/mastra/index.ts", "src/mastra/agents/**/*.ts", "src/mastra/workflows/**/*.ts", "src/mastra/tools/**/*.ts"]
+Description: "Provides comprehensive guidelines for implementing and utilizing observability features within the AI-Mastra framework. This rule details LangSmith integration, prompt management, structured logging, performance tracking, error monitoring, and custom telemetry setup. It activates when editing observability-related code, core framework files, agents, workflows, or tools where observability is a concern."
+---
+
+# AI-Mastra Observability: Comprehensive Patterns & Best Practices
+
+Effective observability is paramount in the AI-Mastra framework to ensure transparency, monitor performance, debug issues, and manage costs associated with AI operations. This document outlines detailed patterns for leveraging the framework's observability stack, primarily centered around LangSmith, PinoLogger, and custom tracking utilities. All new and existing code interacting with AI models, managing state, or performing critical operations should adhere to these patterns.
+
+The primary reference for high-level observability features is the `@file AI-Mastra/README.md` (sections: "Enterprise Observability & Analytics", "Monitoring & Observability"). Core implementations are found in `@file AI-Mastra/src/mastra/observability/index.ts`.
+
+## 1. LangSmith Integration for Comprehensive Tracing
+
+LangSmith serves as the backbone for tracing AI model interactions, agent conversations, and workflow executions. Correct integration is critical.
+
+* **Traced AI Models (`createTracedGoogleModel`):**
+    * **Mandatory Usage:** ALL Google AI model instances (e.g., Gemini models used by agents) MUST be instantiated using the `createTracedGoogleModel` utility. This function wraps the underlying AI SDK model to automatically capture inputs, outputs, configurations, and performance metrics, sending them to LangSmith.
+    * **Source:** This utility is provided by `@file AI-Mastra/src/mastra/observability/googleProvider.ts` and typically re-exported through `@file AI-Mastra/src/mastra/observability/index.ts`.
+    * **Detailed Configuration:** When calling `createTracedGoogleModel(modelName, configObject)`:
+        * `modelName`: The specific Google AI model identifier (e.g., `'gemini-2.5-flash-preview-05-20'`, `'gemini-2.0-flash-exp'`).
+        * `configObject.name`: Provide a unique and descriptive `name` for this specific model instance or usage context (e.g., `'master-agent-model'`, `'rag-agent-retrieval-model'`). This name appears in LangSmith traces and helps differentiate calls.
+        * `configObject.tags`: Supply an array of relevant `tags` (e.g., `['agent', 'master', 'production', 'debug']`). Tags are crucial for filtering, grouping, and analyzing traces in LangSmith.
+        * `configObject.temperature`, `configObject.maxTokens`, `configObject.thinkingConfig`: Include any relevant model invocation parameters. The `thinkingConfig.thinkingBudget` is noted in the README.
+    * **Example Usage (from `@file AI-Mastra/src/mastra/agents/masterAgent.ts`):**
+        ```typescript
+        model: createTracedGoogleModel('gemini-2.5-flash-preview-05-20', {
+          name: 'master-agent-model',
+          tags: ['agent', 'master', 'debug'],
+          thinkingConfig: { thinkingBudget: 2048 },
+          maxTokens: 64000,
+          temperature: 0.7,
+        })
+        ```
+
+* **Environment Variable Configuration:**
+    * Tracing relies on environment variables: `LANGSMITH_API_KEY`, `LANGSMITH_PROJECT`, and `LANGSMITH_TRACING` (must be set to `'true'`). Ensure these are documented and correctly set in all deployment environments.
+
+* **Agent and Workflow Instrumentation:**
+    * While `createTracedGoogleModel` handles LLM calls, the Mastra core framework and `@mastra/inngest` likely provide additional instrumentation for agent-level and workflow-level tracing. The `ObservabilityUtils.instrumentAgent` mentioned in the README suggests capabilities for wrapping entire agents if needed, though direct usage isn't prominent in the provided agent files, implying much of this might be automatic if agents use traced models and standard Mastra execution patterns.
+
+## 2. Prompt Management (LangSmith Hub & Local)
+
+Effective management of prompts is crucial for consistent AI behavior and iterative improvement.
+
+* **`LangSmithHubManager` for Centralized Prompts:**
+    * **Purpose:** To fetch and manage prompts stored centrally in LangSmith Hub, enabling version control, team collaboration, and easier updates without code changes.
+    * **Implementation:** Likely found in `@file AI-Mastra/src/mastra/observability/langHub.ts` and exported via `observability/index.ts`.
+    * **Usage:** Employ `LangSmithHubManager.pullPrompt('prompt-name-on-hub', { version: 'latest', includeModelConfig?: boolean })` to retrieve prompts. This is ideal for critical system prompts or widely used instructional templates.
+
+* **`promptManager` for Local Prompt Templating:**
+    * **Purpose:** For managing prompts defined directly within the codebase, allowing for templating and variable substitution.
+    * **Implementation:** Likely found in `@file AI-Mastra/src/mastra/observability/promptManager.ts` and exported via `observability/index.ts`.
+    * **Usage:**
+        * `promptManager.addPrompt({ id, template, category, tags, variables })`: Define a local prompt template. `variables` should list keys used in the template string (e.g., `{topic}`, `{aspects}`).
+        * `promptManager.renderPrompt(id, valuesObject)`: Render the prompt by substituting variables from the `valuesObject`.
+    * **When to Use:** Suitable for prompts that are closely tied to specific code logic or require dynamic construction based on runtime data not easily managed via Hub.
+
+## 3. Structured Logging with PinoLogger
+
+AI-Mastra utilizes `PinoLogger` from `@mastra/loggers` for efficient and structured JSON logging.
+
+* **Central Logger Instance:** The main `mastra` instance is initialized with a `PinoLogger` configured with a name ('Mastra') and default log level ('info') in `@file ssdeanx/ai-mastra/AI-Mastra-9c843c733026b19a01e114eec2aa377cf0ecb6d2/src/mastra/index.ts`.
+* **Accessing the Logger:**
+    * Within Mastra workflow steps: Use `mastra.getLogger()` passed to the step's `execute` function.
+    * Within agent modules or other services: Either import a shared `observabilityLogger` instance (if defined and exported from `@file ssdeanx/ai-mastra/AI-Mastra-9c843c733026b19a01e114eec2aa377cf0ecb6d2/src/mastra/observability/index.ts`) or instantiate a new `PinoLogger` with appropriate context (e.g., `new PinoLogger({ name: 'SpecificAgentName', level: 'debug' })`) as seen in the module scope of `@file ssdeanx/ai-mastra/AI-Mastra-9c843c733026b19a01e114eec2aa377cf0ecb6d2/src/mastra/agents/masterAgent.ts`.
+* **Structured Log Entries:**
+    * Always log objects in addition to messages to provide structured context. The first argument to log methods (`logger.info(object, message)`) should be an object containing key-value pairs of contextual data.
+    * **Essential Context:** Include `agentName`, `workflowId`, `stepId`, `toolCallId`, relevant input parameters, or identifiers like `resourceId`, `threadId`.
+    * **Example:** `logger.info({ agentName: 'RAGAgent', operation: 'vectorSearch', queryLength: query.length, resultsCount: results.length }, 'Vector search completed.');`
+* **Log Levels:**
+    * `error`: For actual errors and exceptions. Should always include error object/stack.
+    * `warn`: For potential issues or unexpected situations that don't halt execution.
+    * `info`: For significant lifecycle events, operation summaries, or important checkpoints.
+    * `debug`: For detailed information useful during development and troubleshooting.
+    * `trace`: For highly verbose, fine-grained diagnostic information.
+    * Configure default log level via `NODE_ENV` or specific environment variables if needed (e.g., 'debug' in development, 'info' in production).
+
+## 4. Performance and Error Tracking Utilities
+
+The framework provides `MemoryTracker` and `ErrorTracker` for specialized monitoring. These are likely located in `@file AI-Mastra/src/mastra/observability/index.ts`.
+
+* **`MemoryTracker`:**
+    * **Purpose:** To monitor the performance of memory operations (e.g., reads/writes to LibSQL, vector store interactions by `agentMemory`).
+    * **Usage:** Likely used internally by the `agentMemory` system. Provides methods like `MemoryTracker.getPerformanceStats()` which might return metrics such as `avgDuration`, `successRate`, operation counts, etc..
+    * **Actionable Insights:** Use these stats to identify bottlenecks in memory access or issues with semantic recall performance.
+
+* **`ErrorTracker`:**
+    * **Purpose:** To systematically record and retrieve application-level errors beyond standard logging, facilitating analysis of recurring issues.
+    * **Usage:**
+        * `ErrorTracker.recordError('error-category', errorObject, { additionalContext })`: Call this in `catch` blocks for significant errors, providing a category (e.g., `'agent-generation'`, `'tool-execution'`, `'db-operation'`) and the error object.
+        * `ErrorTracker.getRecentErrors(count)` or `ErrorTracker.getErrorsByCategory(category)`: To retrieve recorded errors for analysis or dashboards.
+    * **Integration:** Ensure this is used consistently in high-level error handling within agents, workflows, and critical tool operations.
+
+## 5. Custom Telemetry Setup
+
+The main Mastra instance uses a custom telemetry configuration, detailed in `@file AI-Mastra/src/mastra/index.ts`.
+
+* **`createTelemetryConfig(options)`:**
+    * This function (likely from `@file AI-Mastra/src/mastra/observability/index.ts`) initializes the telemetry system.
+    * Key `options` include `serviceName` (e.g., `"pr-warmhearted-jewellery-74"`), `enabled` status, and `sampling` configuration (e.g., ratio-based, different for production vs. development).
+* **`EnhancedAISDKExporter`:**
+    * A custom telemetry exporter, likely designed to format and send telemetry data to a specific backend or integrate more deeply with the AI SDK's nuances.
+    * When extending telemetry, new exporters or processors should be compatible with this existing architecture.
+
+## 6. Best Practices for Observable Code
+* **Context is King:** Ensure all logs, traces, and error reports carry sufficient contextual information (IDs, tags, parameters) to be useful.
+* **Consistent Tagging:** Develop and use a consistent taxonomy for tags in LangSmith and structured logs to facilitate filtering and analysis.
+* **Granular Tracing:** While `createTracedGoogleModel` traces LLM calls, consider if critical non-LLM operations within agents or tools (e.g., complex data transformations, multiple external API calls by a single tool) also need explicit tracing spans, potentially using OpenTelemetry directly if not handled by Mastra core.
+* **Monitor Costs:** Leverage token usage tracking (mentioned in README) from LangSmith or model providers to monitor and optimize AI operational costs.
+* **Regular Review:** Periodically review LangSmith traces, logs, and error tracker data to identify performance bottlenecks, common errors, or areas for prompt improvement.
+
+
+By thoroughly implementing these observability patterns, the AI-Mastra framework will maintain a high degree of transparency, allowing for effective monitoring, rapid debugging, and continuous improvement of its AI agents and workflows.

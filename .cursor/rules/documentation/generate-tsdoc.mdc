@@ -1,6 +1,6 @@
 ---
 description: 
-globs: 
+globs: src/mastra/**/*.ts
 alwaysApply: false
 ---
 ---
@@ -11,7 +11,7 @@ Description: "Provides a template and guidelines for generating comprehensive TS
 
 # Generating TSDoc Comments for AI-Mastra
 
-Consistent and comprehensive TSDoc documentation is a requirement for the AI-Mastra project, as stated in the main `@file ssdeanx/ai-mastra/AI-Mastra-9c843c733026b19a01e114eec2aa377cf0ecb6d2/README.md` (see sections "API Documentation" and "Contributing"). This rule guides the AI in generating TSDoc that meets these standards whenever working with TypeScript files.
+Consistent and comprehensive TSDoc documentation is a requirement for the AI-Mastra project, as stated in the main `@file AI-Mastra/README.md` (see sections "API Documentation" and "Contributing"). This rule guides the AI in generating TSDoc that meets these standards whenever working with TypeScript files.
 
 When asked to generate or complete TSDoc for a TypeScript code element (function, class, method, interface, type alias), ensure the following structure and tags are used:
 
@@ -32,5 +32,51 @@ A TSDoc comment block should immediately precede the code element it documents.
  * [@returns Description of the return value, including its type if complex.]
  * [@throws {ErrorType} Description of conditions under which this error is thrown.]
  * [@see {@link relatedElement} or URL for further information.]
-
  */
+```
+## 2. Required TSDoc Components:
+
+* **Summary Line:**
+    * A brief, clear, and concise summary of the element's purpose. This is the most important part of the TSDoc.
+* **`@param {paramType} parameterName` - Description:**
+    * Required for every parameter of a function or method.
+    * Include the parameter's type if it's not immediately obvious from the TypeScript signature or if further clarification is needed.
+    * The description should explain the parameter's role and expected values.
+* **`@returns {returnType}` - Description:**
+    * Required if the function or method returns a value.
+    * Include the return type if it's complex or needs clarification beyond the TypeScript signature.
+    * Describe what the returned value represents.
+
+## 3. Optional but Recommended TSDoc Components:
+
+* **`@remarks`:**
+    * Use for more detailed explanations, important considerations, edge cases, or rationale behind the design that doesn't fit in the initial summary.
+* **`@example`:**
+    * Provide a short, illustrative code snippet showing how to use the element.
+* **`@throws {{ErrorType}}` - Description:**
+    * Document any errors that the function or method explicitly throws or is commonly expected to propagate. Specify the type of error if known (e.g., `{Error}`, `{TypeError}`).
+* **`@see {@link relatedElement | OtherResource}` or `@see URL`:**
+    * Use to link to related code elements within the project (using `{@link }`) or to external documentation URLs. This helps users find related information.
+    * Example: `@see {@link AI-Mastra/src/mastra/agents/masterAgent.ts}` or `@see {@link masterAgent}` if symbol linking is effective.
+
+## 4. Style and Clarity
+* Write clearly and concisely.
+* Use complete sentences and proper grammar.
+* Focus on explaining *what* the code does and *why*, not just *how* (unless the "how" is particularly complex or non-obvious).
+
+## 5. Project-Specific Example (from README.md)
+* The following TSDoc style is exemplified in the project's main `@file AI-Mastra/README.md#API-Documentation`:
+
+```typescript
+/**
+ * Retrieves stock price data for a given symbol
+ * @param symbol - Stock ticker symbol (e.g., 'AAPL', 'MSFT')
+ * @returns Promise<StockData> - Stock price and metadata
+ * @throws {Error} When API request fails or symbol is invalid
+ */
+```
+* Strive to match this level of detail and clarity. Refer to existing well-documented files like @file ssdeanx/ai-mastra/AI-Mastra-9c843c733026b19a01e114eec2aa377cf0ecb6d2/src/mastra/workflows/multi-agent-workflow.ts for more examples of TSDoc in practice.
+
+* When assisting with TypeScript code, the AI should use these guidelines to generate, complete, or suggest improvements for TSDoc comments.
+
+

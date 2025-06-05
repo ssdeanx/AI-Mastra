@@ -6,7 +6,7 @@ import { graphRAGTool } from '../tools/graphRAG';
 import { langSmithHub, LangSmithHubUtils } from '../observability/langHub';
 import { promptManager } from '../observability/promptManager';
 import { PinoLogger } from '@mastra/loggers';
-
+import { graphTool } from '../tools/graphRAGTool';
 const logger = new PinoLogger({ name: 'rag-agent', level: 'info' });
 
 /**
@@ -104,7 +104,7 @@ export const ragAgent: Agent = new Agent({
   }),
   tools: {
     vectorQueryTool,
-    graphRAGTool
+    graphTool
   },
   memory: agentMemory,
 });

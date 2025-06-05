@@ -11,13 +11,12 @@ import { TokenLimiter } from '@mastra/memory/processors';
 import { Tracer } from '@opentelemetry/api';
 import { google } from '@ai-sdk/google';
 import { embed } from "ai";
-import { 
-  createTraceableMemoryOperation, 
-  createTraceableThreadOperation, 
+import {
+
   measureMemoryOperation,
   MemoryTracker,
   observabilityLogger,
-  createTracedGoogleModel 
+  createTracedGoogleModel
 } from './observability';
 import { rerank } from '@mastra/rag';
 
@@ -88,10 +87,10 @@ export const agentMemory = new Memory({
     },
     workingMemory: {
       enabled: true,
-       template: `
+      template: `
 # {{agent_name}} Working Memory
 # This is the working memory for the agent, which is used to store dynamic context and knowledge
-# Timestamp: ${new Date().toISOString()}
+# Timestamp: {new Date().toISOString()}
 
 CurrentContext:
   SessionID: "{session_id}" # Unique identifier for the user session
@@ -106,17 +105,17 @@ CurrentContext:
 
 DynamicScratchpad: "{assistant_notes}" # Dynamic notes for current session
   - type: "internal_monologue"
-    timestamp: "${new Date(Date.now() - 30000).toISOString()}" # 30 seconds ago
+    timestamp: "{new Date(Date.now() - 30000).toISOString()}" # 30 seconds ago
     thought: "{agent_thought}" # Agent's internal thought process
   - type: "retrieved_knowledge_summary"
-    timestamp: "${new Date(Date.now() - 20000).toISOString()}" # 20 seconds ago
+    timestamp: "{new Date(Date.now() - 20000).toISOString()}" # 20 seconds ago
     source: "internal_search_results_topic_advanced_WM"
     summary: "{agent_summary}" # Summary of retrieved knowledge
   - type: "planning_step"
-    timestamp: "${new Date(Date.now() - 10000).toISOString()}" # 10 seconds ago
+    timestamp: "{new Date(Date.now() - 10000).toISOString()}" # 10 seconds ago
     action_considered: "{agent_action_considered}" # Action under consideration
   - type: "current_action"
-    timestamp: "${new Date().toISOString()}"
+    timestamp: "{new Date().toISOString()}"
     action: "{agent_current_action}" # Current action being executed
 
 TrackedEntitiesAndBeliefs: # Key entities/concepts agent is currently tracking
@@ -175,17 +174,17 @@ SharedKnowledgeReferences:
     agreed_with: ["{agent_name_1}", "{agent_name_2}"] # Agents that agreed with the reference
     source: "{source}" # Source of the reference
     summary: "{summary}" # Summary of the reference
-    last_accessed: "{${new Date().toISOString()}}" # Timestamp of the last access
-    created_at: "{${new Date().toISOString()}}" # Timestamp of the creation
+    last_accessed: "{{new Date().toISOString()}}" # Timestamp of the last access
+    created_at: "{{new Date().toISOString()}}" # Timestamp of the creation
     created_by: "{agent_name}" # Agent that created the reference
 
 RecentLearningEvents:
   - event_type: "{event_type}" # Type of the event
-    timestamp: "{${new Date().toISOString()}}" # Timestamp of the event
+    timestamp: "{{new Date().toISOString()}}" # Timestamp of the event
     user_feedback: "{user_feedback}" # User feedback related to the event
     agent_action_taken: "{agent_action_taken}" # Action taken by the agent as a result of the event
   - event_type: "{event_type}" # Type of the event
-    timestamp: "{${new Date().toISOString()}}" # Timestamp of the event
+    timestamp: "{{new Date().toISOString()}}" # Timestamp of the event
     tool_id: "{tool_id}" # ID of the tool used in the event
     outcome: "{outcome}" # Outcome of the event
       `, // End of the illustrative YAML template string
@@ -224,40 +223,17 @@ RecentLearningEvents:
  * @param threadId - Optional specific thread ID
  * @returns Promise resolving to thread information
  */
-export const createThread = createTraceableThreadOperation(
-  'createThread',
-  async (resourceId: string, title?: string, metadata?: Record<string, unknown>, threadId?: string) => {
-    const params = createThreadSchema.parse({ resourceId, threadId, title, metadata });
-    
-    return await measureMemoryOperation(
-      'createThread',
-      resourceId,
-      threadId,
-      async () => {
-        try {
-          const result = await agentMemory.createThread(params);
-          observabilityLogger.debug('Thread created successfully', {
-            resourceId,
-            threadId: threadId || 'auto-generated',
-            title,
-            metadata,
-            resultType: typeof result
-          });
-          return result;
-        } catch (error: unknown) {
-          const errorMessage = (error as Error).message;
-          logger.error(`createThread failed: ${errorMessage}`);
-          observabilityLogger.error('Thread creation failed', {
-            resourceId,
-            threadId,
-            error: errorMessage
-          });
-          throw error;
-        }
-      }
-    );
+export async function createThread(
+  resourceId: string, title?: string, metadata?: Record<string, unknown>, threadId?: string
+) {
+  const params = createThreadSchema.parse({ resourceId, threadId, title, metadata });
+  try {
+    return await agentMemory.createThread(params);
+  } catch (error: unknown) {
+    logger.error(`createThread failed: ${(error as Error).message}`);
+    throw error;
   }
-);
+}
 
 /**
  * Query messages for a thread
@@ -266,81 +242,36 @@ export const createThread = createTraceableThreadOperation(
  * @param last - Number of last messages to retrieve
  * @returns Promise resolving to thread messages
  */
-export const getThreadMessages = createTraceableThreadOperation(
-  'getThreadMessages',
-  async (resourceId: string, threadId: string, last = 10) => {
-    const params = getMessagesSchema.parse({ resourceId, threadId, last });
-    
-    return await measureMemoryOperation(
-      'getThreadMessages',
-      resourceId,
-      threadId,
-      async () => {
-        try {
-          const result = await agentMemory.query({ 
-            resourceId: params.resourceId, 
-            threadId: params.threadId, 
-            selectBy: { last: params.last } 
-          });
-          
-          observabilityLogger.debug('Thread messages retrieved successfully', {
-            resourceId,
-            threadId,
-            messageCount: result.messages?.length || 0,
-            requestedLast: last
-          });
-          
-          return result;
-        } catch (error: unknown) {
-          const errorMessage = (error as Error).message;
-          logger.error(`getThreadMessages failed: ${errorMessage}`);
-          observabilityLogger.error('Thread message retrieval failed', {
-            resourceId,
-            threadId,
-            requestedLast: last,
-            error: errorMessage
-          });
-          throw error;
-        }
-      }
-    );
+export async function getThreadMessages(
+  resourceId: string, threadId: string, last = 10
+) {
+  const params = getMessagesSchema.parse({ resourceId, threadId, last });
+  try {
+    return await agentMemory.query({
+      resourceId: params.resourceId,
+      threadId: params.threadId,
+      selectBy: { last: params.last }
+    });
+  } catch (error: unknown) {
+    logger.error(`getThreadMessages failed: ${(error as Error).message}`);
+    throw error;
   }
-);
+}
 
 /**
  * Retrieve a memory thread by its ID.
  * @param threadId - Thread identifier
  * @returns Promise resolving to thread information
  */
-export const getThreadById = createTraceableThreadOperation(
-  'getThreadById',
-  async (threadId: string) => {
-    const id = threadIdSchema.parse(threadId);
-    
-    return await measureMemoryOperation(
-      'getThreadById',
-      undefined,
-      threadId,
-      async () => {
-        try {
-          const result = await agentMemory.getThreadById({ threadId: id });
-          observabilityLogger.debug('Thread retrieved by ID successfully', {
-            threadId
-          });
-          return result;
-        } catch (error: unknown) {
-          const errorMessage = (error as Error).message;
-          logger.error(`getThreadById failed: ${errorMessage}`);
-          observabilityLogger.error('Thread retrieval by ID failed', {
-            threadId,
-            error: errorMessage
-          });
-          throw error;
-        }
-      }
-    );
+export async function getThreadById(threadId: string) {
+  const id = threadIdSchema.parse(threadId);
+  try {
+    return await agentMemory.getThreadById({ threadId: id });
+  } catch (error: unknown) {
+    logger.error(`getThreadById failed: ${(error as Error).message}`);
+    throw error;
   }
-);
+}
 
 /**
  * Retrieve all memory threads associated with a resource.
@@ -438,16 +369,16 @@ export async function generateMemorySummary(
   const params = summarySchema.parse({ resourceId, threadId, historySize });
   try {
     // Retrieve recent messages
-    const { messages } = await agentMemory.query({ 
-      resourceId: params.resourceId, 
-      threadId: params.threadId, 
-      selectBy: { last: params.historySize } 
+    const { messages } = await agentMemory.query({
+      resourceId: params.resourceId,
+      threadId: params.threadId,
+      selectBy: { last: params.historySize }
     });
-    
+
     // Build prompt from messages
     const content = messages.map(m => `${m.role}: ${m.content}`).join('\n');
     const prompt = `Please provide a concise summary of the following conversation messages:\n${content}`;
-    
+
     // Generate summary with Google Gemini model
     const model = createTracedGoogleModel('gemini-2.0-flash-exp', {
       name: 'memory-summary-model',
@@ -467,12 +398,12 @@ export async function generateMemorySummary(
         },
       ],
     });
-    
+
     // Extract summary text from first generation
     const summaryText = typeof result.text === 'string'
       ? result.text
       : (result as any)?.message?.content ?? '';
-    
+
     return summaryText;
   } catch (error: unknown) {
     logger.error(`generateMemorySummary failed: ${(error as Error).message}`);
@@ -546,69 +477,25 @@ export function clearMemoryAnalytics() {
  * @param after - Number of messages after each match
  * @returns Promise resolving to { messages, uiMessages } with enhanced metadata
  */
-export const enhancedSearchMessages = createTraceableMemoryOperation(
-  'enhancedSearchMessages',
-  async (
-    threadId: string,
-    vectorSearchString: string,
-    topK = 3,
-    before = 2,
-    after = 1
-  ): Promise<{ messages: CoreMessage[]; uiMessages: any[]; searchMetadata: any }> => {
-    const params = searchMessagesSchema.parse({ threadId, vectorSearchString, topK, before, after });
-    
-    return await measureMemoryOperation(
-      'enhancedSearchMessages',
-      undefined,
+export async function enhancedSearchMessages(
+  threadId: string,
+  vectorSearchString: string,
+  topK = 3,
+  before = 2,
+  after = 1
+): Promise<{ messages: CoreMessage[]; uiMessages: any[]; searchMetadata: any }> {
+  try {
+    const result = await agentMemory.query({
       threadId,
-      async () => {
-        try {
-          const startTime = Date.now();
-          const result = await agentMemory.query({
-            threadId: params.threadId,
-            selectBy: { vectorSearchString: params.vectorSearchString },
-            threadConfig: { 
-              semanticRecall: { 
-                topK: params.topK, 
-                messageRange: { before: params.before, after: params.after } 
-              } 
-            },
-          });
-          const searchDuration = Date.now() - startTime;
-          
-          const searchMetadata = {
-            searchDuration: `${searchDuration}ms`,
-            query: vectorSearchString,
-            resultCount: result.messages?.length || 0,
-            topK,
-            contextWindow: { before, after },
-            timestamp: new Date().toISOString()
-          };
-          
-          observabilityLogger.info('Enhanced semantic search completed', {
-            threadId,
-            vectorSearchString,
-            searchMetadata
-          });
-          
-          return {
-            ...result,
-            searchMetadata
-          };
-        } catch (error: unknown) {
-          const errorMessage = (error as Error).message;
-          logger.error(`enhancedSearchMessages failed: ${errorMessage}`);
-          observabilityLogger.error('Enhanced semantic search failed', {
-            threadId,
-            vectorSearchString,
-            error: errorMessage
-          });
-          throw error;
-        }
-      }
-    );
+      selectBy: { vectorSearchString },
+      threadConfig: { semanticRecall: { topK, messageRange: { before, after } } },
+    });
+    return { ...result, searchMetadata: { topK, before, after } };
+  } catch (error: unknown) {
+    logger.error(`enhancedSearchMessages failed: ${(error as Error).message}`);
+    throw error;
   }
-);
+}
 
 /**
  * Enhanced reranking search using Mastra's rerank function for better relevance
@@ -629,38 +516,38 @@ export async function rerankSearchMessages(
   after = 1
 ): Promise<{ messages: CoreMessage[]; uiMessages: any[]; rerankMetadata: any }> {
   const startTime = Date.now();
-  
+
   try {
     // First, get more results than needed for reranking
     const initialResults = await agentMemory.query({
       threadId,
       selectBy: { vectorSearchString },
-      threadConfig: { 
-        semanticRecall: { 
-          topK, 
-          messageRange: { before, after } 
-        } 
+      threadConfig: {
+        semanticRecall: {
+          topK,
+          messageRange: { before, after }
+        }
       },
     });
-    
+
     // Use Mastra's rerank function with Google model for better relevance
     if (initialResults.messages.length > finalK) {
       const model = createTracedGoogleModel('gemini-2.0-flash-exp', {
         name: 'rerank-model',
         tags: ['memory', 'rerank', 'search']
       });
-      
+
       // Convert memory results to the format expected by rerank function
       const queryResults = initialResults.messages.map((msg, index) => ({
         id: `msg_${index}`,
         score: 0.5, // Default score
-        metadata: { 
+        metadata: {
           text: msg.content,
           role: msg.role,
-          index 
+          index
         }
       }));
-      
+
       // Rerank using Mastra's rerank function
       const rerankedResults = await rerank(
         queryResults,
@@ -675,18 +562,18 @@ export async function rerankSearchMessages(
           topK: finalK
         }
       );
-      
+
       // Map reranked results back to messages
       const rerankedMessages = rerankedResults.map((result: any) => {
         const originalIndex = result.result.metadata.index;
         return initialResults.messages[originalIndex];
       });
-      
+
       const rerankedUIMessages = rerankedResults.map((result: any) => {
         const originalIndex = result.result.metadata.index;
         return initialResults.uiMessages[originalIndex];
       });
-      
+
       const rerankMetadata = {
         initialResultCount: initialResults.messages.length,
         finalResultCount: rerankedMessages.length,
@@ -694,13 +581,13 @@ export async function rerankSearchMessages(
         rerankingDuration: Date.now() - startTime,
         averageRelevanceScore: rerankedResults.reduce((sum: number, r: any) => sum + r.score, 0) / rerankedResults.length
       };
-      
+
       logger.info('Reranked search completed', {
         threadId,
         query: vectorSearchString,
         ...rerankMetadata
       });
-      
+
       return {
         messages: rerankedMessages,
         uiMessages: rerankedUIMessages,
@@ -710,7 +597,7 @@ export async function rerankSearchMessages(
       // Fallback to simple top-k without reranking
       const finalMessages = initialResults.messages.slice(0, finalK);
       const finalUIMessages = initialResults.uiMessages.slice(0, finalK);
-      
+
       return {
         messages: finalMessages,
         uiMessages: finalUIMessages,
@@ -740,7 +627,7 @@ export async function initializeVectorIndexes(): Promise<void> {
       dimension: 1536,
       metric: 'cosine'
     });
-    
+
     logger.info('Vector indexes initialized successfully');
   } catch (error: unknown) {
     logger.warn('Vector index initialization failed or indexes already exist', {
@@ -767,25 +654,25 @@ export async function batchCreateThreads(
   }>
 ): Promise<any[]> {
   const startTime = Date.now();
-  
+
   try {
     const results = await Promise.allSettled(
-      threadRequests.map(request => 
+      threadRequests.map(request =>
         createThread(request.resourceId, request.title, request.metadata, request.threadId)
       )
     );
-    
+
     const successes = results.filter(r => r.status === 'fulfilled').length;
     const failures = results.filter(r => r.status === 'rejected').length;
-    
+
     logger.info('Batch thread creation completed', {
       totalRequests: threadRequests.length,
       successes,
       failures,
       duration: Date.now() - startTime
     });
-    
-    return results.map(result => 
+
+    return results.map(result =>
       result.status === 'fulfilled' ? result.value : null
     ).filter(Boolean);
   } catch (error: unknown) {
@@ -807,14 +694,14 @@ export async function optimizeMemoryStorage(options: {
   messagesCompacted: number;
   vectorIndexOptimized: boolean;
 }> {
-  const { 
-    olderThanDays = 30, 
-    keepMinimumMessages = 10, 
-    compactVectorIndex = true 
+  const {
+    olderThanDays = 30,
+    keepMinimumMessages = 10,
+    compactVectorIndex = true
   } = options;
-  
+
   const startTime = Date.now();
-  
+
   try {
     // This would require additional LibSQL operations not currently exposed
     // For now, we'll track the optimization request
@@ -824,23 +711,23 @@ export async function optimizeMemoryStorage(options: {
       compactVectorIndex,
       timestamp: new Date().toISOString()
     });
-    
+
     // Placeholder for actual optimization logic
     // In a real implementation, you'd:
     // 1. Query old threads/messages
     // 2. Archive or delete based on criteria
     // 3. Optimize vector indexes
     // 4. Update storage statistics
-    
+
     const optimizationResults = {
       threadsProcessed: 0,
       messagesCompacted: 0,
       vectorIndexOptimized: compactVectorIndex,
       duration: Date.now() - startTime
     };
-    
+
     logger.info('Memory optimization completed', optimizationResults);
-    
+
     return optimizationResults;
   } catch (error: unknown) {
     logger.error(`optimizeMemoryStorage failed: ${(error as Error).message}`);
