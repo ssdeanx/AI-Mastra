@@ -39,11 +39,12 @@ export const researchNetwork = () => new AgentNetwork({
     
     Always provide clear context about why you're routing to a specific agent.
   `,
-  model: createTracedGoogleModel('gemini-2.0-flash-exp', {
+  model: createTracedGoogleModel('gemini-2.5-flash-preview-05-20', {
     name: 'research-network-router',
     tags: ['network', 'research', 'coordination']
   }),
-  agents: [supervisorAgent, ragAgent, stockAgent, weatherAgent, mcpAgent]
+  agents: [supervisorAgent, ragAgent, stockAgent, weatherAgent, mcpAgent],
+
 });
 
 /**

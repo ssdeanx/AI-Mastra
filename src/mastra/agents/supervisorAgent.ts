@@ -35,6 +35,7 @@ export const supervisorAgent: Agent = new Agent({
     name: 'supervisor-agent-model',
     tags: ['agent', 'supervisor', 'MCP'],
     thinkingConfig: { thinkingBudget: 2048 },
+    
     maxTokens: 64000,
     temperature: 0.7,
   }),

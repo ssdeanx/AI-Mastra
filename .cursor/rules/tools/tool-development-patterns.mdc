@@ -70,5 +70,139 @@ Robust error handling is essential for tools, as they often interact with extern
 * Ensure the tool instance or its relevant functions are exported from its module.
 * Tools are typically made available to agents by including them in the `tools` object during agent initialization (see `@file AI-Mastra/src/mastra/agents/masterAgent.ts`).
 
+---
+Rule Type: Auto Attached
+Globs: ["src/mastra/tools/**/*.ts"]
+Description: "Guidelines and best practices for developing and integrating tools within the AI-Mastra framework, updated to current Mastra documentation."
+---
+
+# AI-Mastra Tool Development Patterns
+
+For comprehensive reference, consult:
+
+- Tools & MCP Overview: https://mastra.ai/en/docs/tools-mcp/overview  
+- MCP Overview: https://mastra.ai/en/docs/tools-mcp/mcp-overview  
+- Dynamic Tool Context: https://mastra.ai/en/docs/tools-mcp/dynamic-context  
+- Advanced Usage: https://mastra.ai/en/docs/tools-mcp/advanced-usage  
+- `createTool` API: https://mastra.ai/en/reference/tools/create-tool  
+- MCPClient API: https://mastra.ai/en/reference/tools/mcp-client  
+- MCPServer API: https://mastra.ai/en/reference/tools/mcp-server  
+- Document Chunker Tool: https://mastra.ai/en/reference/tools/document-chunker-tool  
+- Graph RAG Tool: https://mastra.ai/en/reference/tools/graph-rag-tool  
+- Vector Query Tool: https://mastra.ai/en/reference/tools/vector-query-tool  
+
+## 1. Creating Tools
+
+Tools are defined with `createTool` from `@mastra/core/tools` and must include:
+
+```ts
+import { createTool } from "@mastra/core/tools";
+import { z } from "zod";
+
+export const myTool = createTool({
+  id: "unique_tool_id",
+  description: "Briefly describe what and when to use this tool",
+  inputSchema: z.object({
+    /* parameters */
+  }).describe("Input description"),
+  outputSchema: z.object({
+    /* results */
+  }),
+  async execute({ context }) {
+    // 1. (Optionally) parse: inputSchema.parse(context)
+    try {
+      // core logic (API call, compute, I/O)
+      return { /* must match outputSchema */ };
+    } catch (error) {
+      // log and either throw or return structured error
+      throw error;
+    }
+  },
+});
+```
+
+Key points:
+
+- `id`: unique identifier agents refer to.
+- `description`: clear usage guidance.
+- `inputSchema` / `outputSchema`: Zod schemas with `.describe()`.
+- `execute`: `async`, wrap logic in `try/catch`, validate context, return or throw.
+
+## 2. Specialized Tool Factories
+
+- Document Chunker:  
+  ```ts
+  import { createDocumentChunkerTool } from "@mastra/rag";
+  const chunker = createDocumentChunkerTool({ doc, params: { size, overlap, strategy } });
+  ```
+- Graph RAG:  
+  ```ts
+  import { createGraphRAGTool } from "@mastra/rag";
+  export const graphTool = createGraphRAGTool({ vectorStoreName, indexName, model, graphOptions });
+  ```
+- Vector Query:  
+  ```ts
+  import { createVectorQueryTool } from "@mastra/rag";
+  export const vectorQueryTool = createVectorQueryTool({ vectorStoreName, indexName, model });
+  ```
+
+Refer to their reference docs for schema details and usage.
+
+## 3. Dynamic MCP Tools
+
+Fetch runtime tools from MCP servers:
+
+```ts
+import { mcp } from "./mcp";
+const allTools = await mcp.getTools();
+
+export const myAgent = new Agent({
+  // ...
+  tools: {
+    staticToolA,
+    ...(await mcp.getTools()),
+  },
+});
+```
+
+Invoke dynamic tools with `await mcp.callTool(serverName, toolName, args)` or via convenience wrappers.
+
+## 4. Schema Compatibility & Dynamic Context
+
+Mastra applies provider‐specific schema compatibility (Google, OpenAI, Anthropic). To guide agents:
+
+- Keep schemas simple: avoid unsupported properties.
+- Use `description` to note defaults or constraints.
+- Dynamic context via `RuntimeContext` can inject global defaults into tools.
+
+## 5. Error Handling & Observability
+
+- Use `PinoLogger` for custom tool logs.
+- For direct AI calls, wrap models with tracing utilities (e.g., `traceMCPOperation`).
+- Record MCP operations via `MCPTracker`.
+- Errors should include context and be either thrown or returned in a structured object.
+
+## 6. Documentation (TSDoc)
+- Provide comprehensive TSDoc comments for the tool itself, its `execute` method, and its input/output schemas.
+- Explain the tool's purpose, parameters, return values, and any potential errors.
+
+## 7. Observability and Tracing
+* **LangSmith Integration:** Ensure that tool operations, especially those involving AI model calls or significant processing steps, are traceable via LangSmith. This is often handled by the agent or workflow invoking the tool if the tool itself doesn't make direct AI calls.
+* If a tool makes direct calls to AI models, those models should be wrapped with `createTracedGoogleModel` as per `@file AI-Mastra/src/mastra/observability/index.ts`.
+
+
+## 8. Export & Registration
+
+- Export each tool instance from its module.
+- Agents register tools statically:  
+  ```ts
+  tools: { weatherTool, vectorQueryTool, ... }
+  ```
+- MCP Server setup includes both static and dynamic tools:  
+  ```ts
+  new MCPServer({ tools: { vectorQueryTool, graphTool, ...(await mcp.getTools()) }, ... });
+  ```
+
+By following these patterns, tools remain robust, discoverable by agents, and aligned with Mastra’s architecture and observability standards.```
 
 By following these development patterns, new tools will be robust, easy to integrate with agents, and aligned with the overall quality and observability standards of the AI-Mastra framework.

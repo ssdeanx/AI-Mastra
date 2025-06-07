@@ -13,7 +13,7 @@ import { masterAgent } from '../agents/masterAgent';
 import { workerAgent } from '../agents/workerAgent';
 import { mcp } from "../tools/mcp";
 import { vectorQueryTool } from '../tools/vectorQueryTool';
-import { graphTool } from '../tools/graphRAGTool';
+import { graphTool } from '../tools/graphRAG';
 import { weatherWorkflow } from '../workflows/weather-workflow';
 import { taskOrchestrationWorkflow } from '../workflows/multi-agent-workflow';
 import { researchAnalysisWorkflow } from '../workflows/research-analysis-workflow';

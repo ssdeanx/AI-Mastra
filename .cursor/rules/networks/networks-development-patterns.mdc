@@ -1,0 +1,81 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+---
+Rule Type: Auto Attached
+Globs: ["src/mastra/networks/**/*.ts"]
+Description: "Guidelines and best practices for creating and maintaining AgentNetwork-based multi-agent systems within the AI-Mastra framework."
+---
+
+# AI-Mastra Network Development Patterns
+
+Leverage the experimental AgentNetwork for dynamic agent orchestration. Reference: https://mastra.ai/en/reference/networks/agent-network
+
+## 1. Import & Setup
+
+```ts
+import { AgentNetwork } from "@mastra/core/network";
+import { createTracedGoogleModel } from "../observability";
+import { google } from "@ai-sdk/google";
+import { agentA, agentB } from "../agents";
+```
+
+## 2. Instantiate a Network
+
+```ts
+export const researchNetwork = new AgentNetwork({
+  name: "Research Network",
+  instructions: "Coordinate specialized agents to research topics thoroughly.",
+  model: createTracedGoogleModel("gemini-2.0-flash-exp", {
+    name: "research-network-router",
+    tags: ["network", "google"],
+    temperature: 0.3,
+  }),
+  agents: [agentA, agentB],
+});
+```
+
+- **name**: Unique identifier for logging/tracing.  
+- **instructions**: System prompt guiding the router's decisions.  
+- **model**: Prefer traced models (e.g., via `createTracedGoogleModel`) for observability.  
+- **agents**: Array of specialized `Agent` instances.
+
+## 3. Core Methods
+
+- `await network.generate(messages, options?)`: Run the full orchestration.  
+- `await network.stream(messages, options?)`: Stream partial outputs.  
+- `network.getRoutingAgent()`: Access the internal router agent.  
+- `network.getAgents()`: List all participating agents.  
+- `network.getAgentHistory(agentId)`: Retrieve individual agent interactions.  
+- `network.getAgentInteractionSummary()`: Chronological summary of all interactions.
+
+## 4. Design Considerations
+
+- **Dynamic Routing**: Instructions should unambiguously specify when to invoke each agent.  
+- **Token Efficiency**: Limit the number of agents or context size to manage costs.  
+- **Error Handling**: Wrap key operations in `try/catch`; ensure clear error propagation.  
+- **Observability**: Use `PinoLogger` in agents and traced models to capture routing decisions.
+
+## 5. Use Cases
+
+- Best for tasks requiring flexible, AI-driven decision-making on which agent to invoke next.  
+- For deterministic, step-by-step processes, prefer the Workflows API.
+
+## 6. Export & Registration
+
+Register networks alongside agents:
+
+```ts
+import { Mastra } from "@mastra/core";
+import { researchNetwork } from "./networks/researchNetwork";
+
+export const mastra = new Mastra({
+  agents: { /* your agents */ },
+  networks: { researchNetwork },
+});
+```
+
+
+By following these patterns, your AgentNetwork implementations will integrate smoothly with Mastra's core systems, observability layers, and memory infrastructure.

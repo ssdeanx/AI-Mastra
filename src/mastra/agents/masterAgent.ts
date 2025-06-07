@@ -4,7 +4,7 @@ import { agentMemory } from '../agentMemory';
 import { PinoLogger } from '@mastra/loggers';
 import { vectorQueryTool } from '../tools/vectorQueryTool';
 import { createTracedGoogleModel } from '../observability';
-import { graphTool } from '../tools/graphRAGTool';
+import { graphTool } from '../tools/graphRAG';
 
 const logger = new PinoLogger({
     name: 'Mastra',
@@ -84,8 +84,16 @@ Use the mcp tool to interact with the Model Context Protocol.
   model: createTracedGoogleModel('gemini-2.5-flash-preview-05-20', {
     name: 'master-agent-model',
     tags: ['agent', 'master', 'debug'],
-    thinkingConfig: { thinkingBudget: 2048 },
+    thinkingConfig: { thinkingBudget: 1024,
+        includeThoughts: true, },
+    responseModalities: ['TEXT', 'IMAGE'],
+    maxContext: 100000,
+    functionCalling: true,
     maxTokens: 64000,
+    topP: 0.95,
+    topK: 40,
+    presencePenalty: 0.1,
+    frequencyPenalty: 0.11,
     temperature: 0.7,
   }),
   tools: {

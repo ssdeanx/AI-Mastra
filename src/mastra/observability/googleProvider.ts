@@ -31,6 +31,7 @@ export function createGemini25Provider(
     ...options,
     thinkingConfig: {
       ...defaultOptions.thinkingConfig,
+      includeThoughts: true,
       ...(options.thinkingConfig || {})
     }
   };

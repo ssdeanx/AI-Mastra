@@ -1,0 +1,121 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+---
+Rule Type: Auto Attached
+Globs: ["src/mastra/inngest/**/*.ts","src/mastra/workflows/**/*.ts"]
+Description: "Guidelines and best practices for defining and registering Inngest workflows within the Mastra framework."
+---
+
+# Inngest Workflow Patterns
+
+Maps Mastra `createWorkflow` and `createStep` onto Inngest functions, preserving control flow, observability, and resumability.
+
+Docs: https://mastra.ai/en/docs/workflows/inngest-workflow
+
+## 1. Setup & Dependencies
+
+- Install:
+  npm install @mastra/inngest @mastra/core @mastra/deployer
+- Import and initialize Inngest:
+  ```ts
+  import { Inngest } from "inngest";
+  import { realtimeMiddleware } from "@inngest/realtime";
+
+  export const inngest = new Inngest({
+    id: "mastra",
+    middleware: [realtimeMiddleware()],
+    isDev: true,
+  });
+  ```
+- Bridge to Mastra:
+  ```ts
+  import { init } from "@mastra/inngest";
+  const { createWorkflow, createStep } = init(inngest);
+  ```
+
+## 2. Defining Steps
+
+Use `createStep`:
+```ts
+const incrementStep = createStep({
+  id: "increment",
+  inputSchema: z.object({ value: z.number() }),
+  outputSchema: z.object({ value: z.number() }),
+  async execute({ inputData }) {
+    try {
+      return { value: inputData.value + 1 };
+    } catch (error) {
+      throw error;
+    }
+  },
+});
+```
+- Always validate with Zod, wrap logic in `try/catch`.
+
+## 3. Composing Workflows
+
+- Create the workflow:
+  ```ts
+  const workflow = createWorkflow({
+    id: "increment-workflow",
+    inputSchema: z.object({ value: z.number() }),
+    outputSchema: z.object({ value: z.number() }),
+  })
+    .then(incrementStep)
+    .dountil({
+      condition: ({ output }) => output.value >= 10,
+      inputMapper: ({ output }) => ({ value: output.value }),
+    })
+    .commit();
+  ```
+- Use control primitives: `dountil`, `parallel`, `branch`, `foreach`.
+
+## 4. Mastra Integration & API Routes
+
+Register in `src/mastra/index.ts`:
+```ts
+import { serve as inngestServe } from "@mastra/inngest";
+
+export const mastra = new Mastra({
+  workflows: { incrementWorkflow },
+  server: {
+    apiRoutes: [
+      {
+        path: "/api/inngest",
+        method: "ALL",
+        createHandler: async ({ mastra }) =>
+          inngestServe({ mastra, inngest }),
+      },
+    ],
+  },
+  logger: new PinoLogger({ name: "Mastra", level: "info" }),
+});
+```
+- Exposes `/api/inngest` for event-driven execution.
+
+## 5. Observability & Error Handling
+
+- Use `PinoLogger` for logs.
+- Leverage Inngest’s built-in step tracking.
+- Wrap step and workflow logic in `try/catch` and log errors clearly.
+
+## 6. Deployment & Execution
+
+- Local:
+  - `npx mastra dev`
+  - Docker Inngest:  
+    ```bash
+    docker run --rm -p 8288:8288 inngest/inngest \
+      inngest dev -u http://host.docker.internal:4111/inngest/api
+    ```
+- Production:
+  - Add a deployer (e.g., `VercelDeployer`).
+  - Run `npx mastra build` then deploy via Vercel CLI.
+
+## 7. Documentation & TSDoc
+
+- Document steps and workflows with TSDoc: parameters, returns, errors.
+- Link to the Inngest guide for advanced patterns and best practices.

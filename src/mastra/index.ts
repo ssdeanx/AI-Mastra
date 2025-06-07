@@ -39,7 +39,7 @@ import {
   createTelemetryConfig,
   EnhancedAISDKExporter
 } from './observability';
-
+import { mcpServer } from './tools/mcpServer';
 /**
  * Main Mastra instance with integrated multi-agent workflows and observability
  * 
@@ -84,6 +84,7 @@ export const mastra = new Mastra({
     name: 'Mastra',
     level: 'info',
   }),
+    
   //  server: {
   // The server configuration is required to allow local docker container can connect to the mastra server
   //    host: "0.0.0.0",

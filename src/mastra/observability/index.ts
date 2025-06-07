@@ -504,6 +504,9 @@ export function createTracedGoogleModel(
     
     // Google AI provider options (passed through to createMastraGoogleProvider)
     temperature?: number;
+    cachedContent?: string;
+    maxContext?: number;
+    functionCalling?: boolean;
     maxTokens?: number;
     topP?: number;
     topK?: number;
@@ -512,7 +515,9 @@ export function createTracedGoogleModel(
     seed?: number;
     thinkingConfig?: {
       thinkingBudget?: number;
+      includeThoughts?: boolean;
     };
+    responseModalities?: ["TEXT", "IMAGE"];
     
     // Additional Google provider options
     safetySettings?: Array<{
@@ -549,7 +554,12 @@ export function createTracedGoogleModel(
       framework: 'ai-sdk',
       temperature: googleProviderOptions.temperature,
       maxTokens: googleProviderOptions.maxTokens,
+      maxContext: googleProviderOptions.maxContext,
+      functionCalling: googleProviderOptions.functionCalling,
       thinkingBudget: googleProviderOptions.thinkingConfig?.thinkingBudget,
+      includeThoughts: googleProviderOptions.thinkingConfig?.includeThoughts,
+      responseModalities: googleProviderOptions.responseModalities,
+      cachedContent: googleProviderOptions.cachedContent,
       ...metadata
     }
   });

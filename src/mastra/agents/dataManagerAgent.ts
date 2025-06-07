@@ -53,10 +53,21 @@ export const dataManagerAgent: Agent = new Agent({
     *   \`vectorQueryTool\`: For semantic search and retrieval of data from vector databases.
     *   (Other potential tools: database interaction, file parsing, API connectors - to be implemented if needed).
   `,
-  model: createTracedGoogleModel('gemini-2.0-flash-exp', {
+  model: createTracedGoogleModel('gemini-2.5-flash-preview-05-20', {
     name: 'data-manager-agent-model',
     tags: ['agent', 'data-management', 'database'],
     temperature: 0.5, // Balanced for data interpretation and generation
+    thinkingConfig: { thinkingBudget: 128,
+        includeThoughts: true, },
+    responseModalities: ['TEXT', 'IMAGE'],
+    maxContext: 100000,
+    functionCalling: true,
+    maxTokens: 64000,
+    topP: 0.95,
+    topK: 40,
+    presencePenalty: 0.0,
+    frequencyPenalty: 0.0,
+    seed: 42,
   }),
   tools: {
     vectorQueryTool,
