@@ -27,19 +27,46 @@ const smitheryApi = getSmitheryApi();
  */
 export const mcpStdio = new MCPClient({
   id: 'stdio-servers',
-  timeout: 30000,
+  timeout: 60000,
   servers: {
     filesystem: {
       command: "npx",
       args: [
         "-y",
         "@modelcontextprotocol/server-filesystem",
-        "C:\\Users\\dm\\Documents\\AI-Mastra\\data",
+        "C:\\Users\\dm\\Documents\\AI-Mastra",
       ],
-      timeout: 20000,
+      timeout: 60000,
       enableServerLogs: true,
       logger: (logMessage) => {
         logger.info(`[MCP:filesystem] ${logMessage.message}`, { level: logMessage.level });
+      }
+    },
+    git: {
+      command: "uvx",
+      args: ["mcp-server-git", "--repository", "C:\\Users\\dm\\Documents\\AI-Mastra"],
+      timeout: 60000,
+      enableServerLogs: true,
+      logger: (logMessage) => {
+        logger.info(`[MCP:git] ${logMessage.message}`, { level: logMessage.level });
+      }
+    },
+    time: {
+      command: "uvx",
+      args: ["mcp-server-time", "--local-timezone=America/New_York"],
+      timeout: 60000,
+      enableServerLogs: true,
+      logger: (logMessage) => {
+        logger.info(`[MCP:time] ${logMessage.message}`, { level: logMessage.level });
+      }
+    },
+    everything: {
+      command: "npx",
+      args: ["-y", "@modelcontextprotocol/server-everything"],
+      timeout: 60000,
+      enableServerLogs: true,
+      logger: (logMessage) => {
+        logger.info(`[MCP:everything] ${logMessage.message}`, { level: logMessage.level });
       }
     },
     jsSandbox: {

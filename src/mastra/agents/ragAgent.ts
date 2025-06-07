@@ -2,11 +2,11 @@ import { Agent } from '@mastra/core';
 import { createTracedGoogleModel, traceRAGOperation } from '../observability';
 import { agentMemory } from '../agentMemory';
 import { vectorQueryTool } from '../tools/vectorQueryTool';
-import { graphRAGTool } from '../tools/graphRAG';
+import { graphTool } from '../tools/graphRAG';
 import { langSmithHub, LangSmithHubUtils } from '../observability/langHub';
 import { promptManager } from '../observability/promptManager';
 import { PinoLogger } from '@mastra/loggers';
-import { graphTool } from '../tools/graphRAGTool';
+
 const logger = new PinoLogger({ name: 'rag-agent', level: 'info' });
 
 /**
@@ -187,7 +187,7 @@ export const createEnhancedRAGAgent = traceRAGOperation(
       }),
       tools: {
         vectorQueryTool,
-        graphRAGTool
+        graphTool
       },
       memory: agentMemory,
     });

@@ -19,7 +19,7 @@ logger.info('Mastra mcpAgent initialized');
  * MCP Agent instance for handling Model Context Protocol interactions
  */
 export const masterAgent: Agent = new Agent({
-  name: 'Master Agent',
+  name: 'Master Sensei',
   instructions: `
      ## ROLE DEFINITION
 *   You are The Master Agent, an advanced AI designed to manage and interact with the Model Context Protocol (MCP).
@@ -87,6 +87,11 @@ Use the mcp tool to interact with the Model Context Protocol.
     thinkingConfig: { thinkingBudget: 1024,
         includeThoughts: true, },
     responseModalities: ['TEXT', 'IMAGE'],
+    useSearchGrounding: true,
+    dynamicRetrievalConfig: {
+        mode: 'MODE_DYNAMIC',
+        dynamicThreshold: 0.8,
+      },
     maxContext: 100000,
     functionCalling: true,
     maxTokens: 64000,

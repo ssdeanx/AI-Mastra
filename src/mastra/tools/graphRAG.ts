@@ -7,6 +7,7 @@ import { PinoLogger } from '@mastra/loggers';
 import { RuntimeContext } from "@mastra/core/runtime-context";
 import { createGraphRAGTool } from "@mastra/rag";
 import { google } from '@ai-sdk/google';
+import { fastembed } from '@mastra/fastembed';
 const logger = new PinoLogger({ name: 'GraphRAGTool' });
 
 
@@ -68,11 +69,11 @@ export const GraphRAGOutputSchema = z.object({
 export type IGraphRAGOutput = z.infer<typeof GraphRAGOutputSchema>;
 
 export const graphTool = createGraphRAGTool({
-  vectorStoreName: "libsql",
+  vectorStoreName: "agentVector",
   indexName: "context",
-  model: google.textEmbeddingModel("gemini-embedding-exp-03-07"),
+  model: fastembed,
   graphOptions: {
-    dimension: 1536,
+    dimension: 384,
     threshold: 0.7,
     randomWalkSteps: 100,
     restartProb: 0.15,
@@ -95,14 +96,14 @@ export const runtimeContext = new RuntimeContext<{
     restartProb: number;
   };
 }>();
-runtimeContext.set("vectorStoreName", "libsql");
+runtimeContext.set("vectorStoreName", "agentVector");
 runtimeContext.set("indexName", "context");
 runtimeContext.set("topK", 5);
 runtimeContext.set("filter", { category: "context" });
-runtimeContext.set("model", "gemini-embedding-exp-03-07");
+runtimeContext.set("model", "fastembed");
 runtimeContext.set("description", "Analyze context relationships to find complex patterns and connections in the data");
 runtimeContext.set("graphOptions", {
-  dimension: 1536,
+  dimension: 384,
   threshold: 0.7,
   randomWalkSteps: 100,
   restartProb: 0.15,
